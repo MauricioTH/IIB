@@ -1,0 +1,21 @@
+BROKER SCHEMA api.exception.common.dao
+
+CREATE FUNCTION countEmailSend(IN service_name CHARACTER, IN id_transaction CHARACTER) RETURNS INTEGER
+BEGIN
+	DECLARE data ROW;
+	
+	--consultar cantidad de emails enviados en la ultima
+	DECLARE sqlCount CHARACTER 'SELECT COUNT(NUM_SEND_EMAIL) AS EMAIL_NUM FROM ERROR_SERVICE 
+	WHERE FK_ID_SERVICE = ? 
+	AND FK_ID_TRANSACTION = ? 
+	AND TO_CHAR(ERROR_DATE, ''DD-MON-YYYY HH:MI'') BETWEEN (SELECT TO_CHAR(SYSDATE - INTERVAL ''1'' HOUR, ''DD-MON-YYYY HH:MI'') NOW FROM DUAL) AND (SELECT TO_CHAR(SYSDATE, ''DD-MON-YYYY HH:MI'') NOW FROM DUAL)  
+	AND NUM_SEND_EMAIL > 0 ';
+	
+	SET data.value  = PASSTHRU(sqlCount, service_name, id_transaction);
+	RETURN CAST(data.value.EMAIL_NUM AS INTEGER);
+END;
+
+CREATE PROCEDURE insertLogError(IN refConfig REFERENCE, IN trace CHARACTER) BEGIN
+	DECLARE sql CHARACTER 'INSERT INTO ERROR_SERVICE(FK_ID_SERVICE,FK_ID_TRANSACTION,SOURCE,TRACE,NUM_SEND_EMAIL,ERROR_DATE) VALUES (?,?,?,?,?,?)';
+	PASSTHRU(sql,refConfig.usr.contextTransaction.idService,refConfig.usr.contextTransaction.IdTransaction,refConfig.usr.log.component,trace,0,CURRENT_TIMESTAMP);
+END;

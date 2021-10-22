@@ -1,0 +1,44 @@
+BROKER SCHEMA common.procedures.utils
+
+
+CREATE PROCEDURE getDescriptionExceptionList(IN exceptionList reference, INOUT codeError CHARACTER, INOUT nameError CHARACTER, INOUT descError CHARACTER)
+BEGIN
+	-- Crear una referencia al primer hijo de la lista de excepciones
+	DECLARE refList REFERENCE TO exceptionList.*[1];
+	-- Seguir con el bucle mientras actúan los desplazamientos
+	WHILE LASTMOVE(refList) DO
+		-- Almacenar los valores actuales para el número de error y el texto
+		IF refList.Number IS NOT NULL THEN
+			SET codeError = refList.Number;
+			SET nameError = refList.Text;
+
+			DECLARE numInserts REFERENCE TO refList.Insert;
+			IF LENGTH(numInserts.Text) > 0 THEN
+				SET descError = descError || ' - ' || numInserts.Text || ' - ';
+			END IF;
+			
+			MOVE numInserts NEXTSIBLING;
+			WHILE LASTMOVE(numInserts) DO
+				IF LENGTH(numInserts.Text) > 0 THEN
+					SET descError = descError || ' - ' || COALESCE(numInserts.Text,'') || ' - '; 
+				END IF;
+				MOVE numInserts NEXTSIBLING;
+			END WHILE;
+		END IF;
+		-- Ahora ir al último hijo, que debería ser la próxima lista de excepciones
+		MOVE refList LASTCHILD;
+	END WHILE;
+END;
+
+CREATE PROCEDURE createMsgLogs(INOUT refMQRFH2 reference,  IN idLog INTEGER, IN nameComponent CHARACTER)
+BEGIN
+	SET refMQRFH2.usr.log.component						= nameComponent;
+	SET refMQRFH2.usr.log.idLog 						= idLog;
+	SET refMQRFH2.usr.log.transactionDate 				= com.common.utils.functions.getDateRegisterOracle();
+END;
+
+CREATE PROCEDURE saveMQM(IN refInp reference,  INOUT refEnv REFERENCE)
+BEGIN
+	SET refEnv.Variables.headers.MQMD 					= refInp.MQMD;
+	SET refEnv.Variables.headers.MQRFH2					= refInp.MQRFH2;
+END;

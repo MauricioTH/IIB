@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="FuerzaPublica" targetNamespace="http://www.example.org/MinDefensa/FuerzaPublica/" xmlns:fp="http://www.example.org/MinDefensa/FuerzaPublica/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <wsdl:documentation>
+    <wsdl:appinfo source="WMQI_APPINFO">
+      <MRWSDLAppInfo imported="true">
+        <generatedXSD location="FuerzaPublica_InlineSchema1.xsd"/>
+        <binding hasEncoding="false" imported="true" name="FuerzaPublicaSOAP" originalBindingStyle="document"/>
+      </MRWSDLAppInfo>
+    </wsdl:appinfo>
+  </wsdl:documentation>
+  <wsdl:types>
+    
+          <xsd:schema targetNamespace="http://www.example.org/MinDefensa/FuerzaPublica/" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions">
+<xsd:include schemaLocation="FuerzaPublica_InlineSchema1.xsd"/>
+    </xsd:schema>
+    </wsdl:types>
+  
+  <wsdl:message name="ConsultaFuncionarioRequest">
+    <wsdl:part element="fp:ConsultaFuncionarioReq" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="ConsultaFuncionarioResponse">
+    <wsdl:part element="fp:ConsultaFuncionarioResp" name="parameters"/>
+  </wsdl:message>
+  
+  <wsdl:portType name="FuerzaPublica">
+    <wsdl:operation name="ConsultaFuncionarios">
+      <wsdl:input message="fp:ConsultaFuncionarioRequest"/>
+      <wsdl:output message="fp:ConsultaFuncionarioResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  
+  <wsdl:binding name="FuerzaPublicaSOAP" type="fp:FuerzaPublica">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="ConsultaFuncionarios">
+      <soap:operation soapAction="http://www.example.org/MinDefensa/FuerzaPublica/ConsultaFuncionarios"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="FuerzaPublica">
+    <wsdl:port binding="fp:FuerzaPublicaSOAP" name="FuerzaPublicaSOAP">
+      <soap:address location="http://localhost/MinDefensa/FuerzaPublica/ConsultaFuncionarios"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

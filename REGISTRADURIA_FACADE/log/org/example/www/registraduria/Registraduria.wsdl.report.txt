@@ -1,0 +1,31 @@
+
+
+Importing file: F:\Universidad\Ingenieria Software\Registraduria\Construccion\Creacion WSDLs\Registraduria.wsdl
+
+The WSDL import will proceed with bindings RegistraduriaSOAP.
+Creating wsdl schema document for file:///F:/Universidad/Ingenieria Software/Registraduria/Construccion/Creacion WSDLs/Registraduria.wsdl.
+Parsing wsdl binding {http://www.example.org/Registraduria/}RegistraduriaSOAP.
+Parsing wsdl binding input RegistroUsuario.
+Parsing wsdl binding output RegistroUsuario.
+Parsing wsdl binding input LoginUsuario.
+Parsing wsdl binding output LoginUsuario.
+Parsing wsdl binding input ConsultaFuncionario.
+Parsing wsdl binding output ConsultaFuncionario.
+Parsing wsdl binding input ConsultaAntecedentes.
+Parsing wsdl binding output ConsultaAntecedentes.
+Processing doc style for operation RegistroUsuario.
+Processing doc style for operation LoginUsuario.
+Processing doc style for operation ConsultaFuncionario.
+Processing doc style for operation ConsultaAntecedentes.
+Populating WSDL schema Registraduria.xsd.
+Creating file Registraduria.xsd in the workspace.
+Creating file Registraduria_InlineSchema1.xsd in the workspace.
+Copying source WSDL Registraduria.wsdl to Registraduria.wsdl.
+
+Elapsed time processing this message definition file: 0.442 seconds
+Number of warnings for this message definition file: 0
+
+
+Number of files processed: 1
+
+

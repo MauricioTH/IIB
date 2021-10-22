@@ -1,0 +1,16 @@
+BROKER SCHEMA com.common.global.cache.functions
+
+CREATE FUNCTION getParameterByConfig(IN nmSrv CHARACTER, IN parameter CHARACTER, IN encod INTEGER, IN ccsid INTEGER)RETURNS CHARACTER
+BEGIN
+    --Validar informaciòn sobre configuraciòn de auditoria
+	DECLARE config ROW;
+	DECLARE refConfig REFERENCE TO config.data;
+	
+    CALL com.common.global.cache.getConfigService(nmSrv, encod ,ccsid,refConfig);
+    IF parameter = 'MAX_EMAIL_HOUR' THEN
+    	RETURN CAST((CAST(refConfig.config.{parameter} AS INTEGER)) AS CHARACTER);
+    ELSE
+    	RETURN refConfig.config.{parameter};		
+    END IF;
+    
+END;

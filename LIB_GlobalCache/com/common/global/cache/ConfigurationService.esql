@@ -1,0 +1,42 @@
+BROKER SCHEMA com.common.global.cache
+
+DECLARE CONFIG_CATALOG_MAP CONSTANT CHARACTER 'ConfigService';
+
+/*
+Procedimiento que devuelve la configuración por servicio
+*/
+CREATE PROCEDURE getConfigService(IN serviceName CHARACTER, IN encod INTEGER, IN ccsid INTEGER, INOUT resultValue REFERENCE)
+BEGIN
+	DEClARE destValue CHARACTER EMPTY_STRING;
+	DECLARE config ROW;
+	DECLARE refConfig REFERENCE TO config;
+	CREATE LASTCHILD OF refConfig DOMAIN 'XMLNSC' NAME 'XMLNSC';
+	DEClARE keyName CHARACTER serviceName;
+	
+	SET destValue = getGlobalCache(keyName, CONFIG_CATALOG_MAP);
+	
+	IF (destValue IS NULL) THEN
+		--Consulta del valor de la homologacions
+		CALL com.common.global.cache.dao.getConfigService(serviceName, refConfig);
+		IF EXISTS(refConfig.XMLNSC.configService[]) THEN
+			CALL com.common.utils.procedures.parseMessage(refConfig,encod,ccsid,resultValue);
+			DECLARE result CHARACTER putGlobalCache(keyName, resultValue.message, CONFIG_CATALOG_MAP);
+			
+			--Asignar mensaje XML a referencia de respuesta.
+			SET resultValue = refConfig;
+			MOVE resultValue LASTCHILD;
+			MOVE resultValue LASTCHILD;
+			
+		ELSE
+			SET resultValue.code 	= DEFAULT_CODE;
+			SET resultValue.desc 	= DEFAULT_DESCRIPTION;
+		END IF;
+	ELSE
+		DECLARE srvData ROW;
+		CREATE LASTCHILD OF resultValue DOMAIN('XMLNSC') PARSE(destValue CCSID 1208);
+    	MOVE resultValue LASTCHILD;
+    	MOVE resultValue LASTCHILD;
+    	MOVE resultValue LASTCHILD;
+    	
+	END IF;	
+END;

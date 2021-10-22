@@ -1,0 +1,90 @@
+BROKER SCHEMA com.common.utils.dao
+
+/*
+* Obtiene los registros de logs dado un id de transacción
+*
+* Parameters:
+* IN:  CHARACTER idTransaction - Id de transacción
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getLogByTransaction(IN idTransaction CHARACTER, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'SELECT * FROM LOG_TRANSACTION WHERE ID_TRANSACTION = ?';
+	SET result.Log.Main[] = PASSTHRU(sql,idTransaction);
+	
+	--Consultar detalle
+	SET sql = 'SELECT * FROM LOG_TRANSACTION_DETAIL WHERE FK_ID_TRANSACTION = ?';	
+	SET result.Log.Details.Logs[] = PASSTHRU(sql,idTransaction);
+	
+	--Consultar errores
+	SET sql = 'SELECT * FROM ERROR_SERVICE WHERE FK_ID_TRANSACTION = ?';	
+	SET result.Log.Errors.Logs[] = PASSTHRU(sql,idTransaction);
+END;
+
+/*
+* Obtiene los servicios registrados en la base de datos, se puede filtrar por id de servicio
+*
+* Parameters:
+* IN:  CHARACTER idService- Identificador para búsqueda, ALL, retorna todos los registros
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getServiceById(IN filter CHARACTER, INOUT result REFERENCE) BEGIN
+	IF filter = 'ALL' THEN
+		DECLARE sql CHARACTER 'SELECT * FROM SERVICES';
+		SET result.Service.Info[] = PASSTHRU(sql);	
+	ELSE
+		DECLARE sql CHARACTER 'SELECT * FROM SERVICES WHERE PK_ID_SERVICE = ?';
+		SET result.Service.Info[] = PASSTHRU(sql,filter);
+	END IF;
+END;
+
+
+/*
+* Obtiene los servicios registrados en la base de datos, se puede filtrar por id de servicio
+*
+* Parameters:
+* IN:  CHARACTER idService- Identificador para búsqueda, ALL, retorna todos los registros
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getMaskDataServiceById(IN filter CHARACTER, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'SELECT * FROM MASK_DATA WHERE FK_ID_SERVICE = ?';
+	SET result.Service.MaskData[] = PASSTHRU(sql,filter);
+END;
+
+/*
+* Actualiza información de configuración de un servicio en el catálogo de servicios
+*
+* Parameters:
+* IN:  REFERENCE Service- Información del servicio
+* OUT: REFERENCE result - Referencia donde devuelve los datos de la transacción
+*
+*/
+CREATE PROCEDURE updateConfigService(IN refService REFERENCE, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'UPDATE SERVICES SET 
+	TYPE = ?, NAME = ?, DESCRIPTION = ?, VERSION = ?, TECHNOLOGY = ?, INTERFACE_DATA = ?, LOGS = ?, 
+	NOTIFICATION_ERROR = ?, RETRY_NUMBER = ?, COMPONENT_REVERSE = ?, TIMEOUT_BACKEND = ?, TYPE_LOG = ?, 
+	MASK_DATA = ?, MAX_EMAIL_HOUR = ? WHERE PK_ID_SERVICE = ?';
+	PASSTHRU(sql,refService.type, refService.name, refService.description, refService.version, refService.technology, refService.interfaceData, refService.logs, refService.notificationError, refService.retryNumber, refService.reverseComponent, refService.timeoutBackend, refService.typeLog, refService.maskData, refService.maxEmailHour, refService.idService);
+	
+	FOR refMask AS refService.MaskData.Item[]  DO
+		CALL updateMaskConfigService(refMask, result);		
+	END FOR;
+	
+	SET result.code = '0000';
+	SET result.desc = 'Transación Exitosa';
+END;
+
+CREATE PROCEDURE updateMaskConfigService(IN refService REFERENCE, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'UPDATE MASK_DATA SET 
+	TYPE_MESSAGE = ?, PATH_DATA = ?, MASK_TYPE = ? WHERE PK_ID_MASK_DATA = ?';
+	PASSTHRU(sql,refService.typeMessage, refService.pathData, refService.maskType, refService.idMaskData);
+	
+	SET result.code = '0000';
+	SET result.desc = 'Transación Exitosa';
+END;
+
+
+
+

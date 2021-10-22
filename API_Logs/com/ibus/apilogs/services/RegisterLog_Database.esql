@@ -1,0 +1,57 @@
+BROKER SCHEMA com.ibus.apilogs.services
+DECLARE EMPTY_STRING CONSTANT CHARACTER '';
+DECLARE LOG_FCD_REQ CONSTANT CHARACTER '1';
+DECLARE LOG_FCD_RESP CONSTANT CHARACTER '4';	
+DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+
+CREATE DATABASE MODULE RegisterLog_Database
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Declarar referencias a cabeceras
+		DECLARE refMQRFH2 REFERENCE TO Root.MQRFH2.usr;
+		
+		IF EXISTS(refMQRFH2.configService.config.LOGS[]) THEN
+			--Mensaje para registro de traza
+			DECLARE refInp REFERENCE TO Root;
+			MOVE refInp LASTCHILD;
+				
+			--Registra cuando es petición a cliente
+			IF refMQRFH2.log.idLog = LOG_FCD_REQ THEN
+				CALL api.logs.common.dao.insertLogTransaction(refMQRFH2);	
+			END IF;
+			
+			--Actualiza cuando es respuesta a cliente
+			IF refMQRFH2.log.idLog = LOG_FCD_RESP THEN
+				IF refMQRFH2.response.formatType = 'XMLNSC' THEN
+					MOVE refInp LASTCHILD;
+				ELSE
+					MOVE refInp LASTCHILD;
+					MOVE refInp LASTCHILD;
+				END IF;
+				SET refMQRFH2.log.stateTransaction = refInp.*:ContextTransaction.*:CodeTransaction;
+				SET refMQRFH2.log.descTransaction = refInp.*:ContextTransaction.*:DescTransaction;
+				CALL api.logs.common.dao.updateLogTransaction(refMQRFH2);
+			END IF;
+			
+			IF CONTAINS(FIELDVALUE(refMQRFH2.configService.config.LOGS),refMQRFH2.log.idLog) THEN
+--				IF(FIELDVALUE(refMQRFH2.configService.config.MASK_DATA) = 1)THEN
+--					CALL com.common.utils.procedures.maskMessage(refMQRFH2,refInp);
+--				END IF;
+				
+				--Obtener mensaje
+				--Declarar variables
+				DECLARE encod INTEGER COALESCE(Root.Properties.Encoding, Root.MQMD.Encoding, DEFAULT_ENCODING);
+				DECLARE ccsid INTEGER COALESCE(Root.Properties.CodedCharSetId, Root.MQMD.CodedCharSetId, DEFAULT_CCSID);
+		
+				CALL com.common.utils.procedures.parseMessage(refInp,encod,ccsid,refMQRFH2);
+				
+				--insertar datos en detail
+				CALL api.logs.common.dao.insertLogTransactionDetail(refMQRFH2);	
+			END IF;	
+		END IF;
+		RETURN FALSE;
+	END;
+
+END MODULE;
+

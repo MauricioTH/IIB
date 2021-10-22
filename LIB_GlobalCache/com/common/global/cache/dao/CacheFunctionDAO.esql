@@ -1,0 +1,53 @@
+BROKER SCHEMA com.common.global.cache.dao
+
+DECLARE MASK_DATA_TRUE CONSTANT CHARACTER '1';
+
+/*
+* Obtiene el valor de una homologacion de la base de datos
+*
+* Parameters:
+* IN:  CHARACTER srcApp - Nombre aplicacion origen
+* IN:  CHARACTER destApp - Nombre aplicacion destino
+* IN:  CHARACTER valueName - Nombre homologacion
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getHomologation(IN srcApp CHARACTER, IN destApp CHARACTER, IN category CHARACTER, IN valueName CHARACTER, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'SELECT HOMOLOGATED_VALUE FROM HOMOLOGATION_DATA WHERE ORIGIN_APP = ? AND DESTINY_APP = ? AND ORIGIN_VALUE = ? AND CATEGORY = ?';
+	SET result.values[] = PASSTHRU(sql, srcApp, destApp, valueName, category );
+END;
+
+
+/*
+* Obtiene el valor de una homologacion de errores de la base de datos
+*
+* Parameters:
+* IN:  CHARACTER techCode - Código de error a homologar
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getHomologationError(IN techCode CHARACTER, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'SELECT BUSINESS_CODE, DESCRIPTION_ERROR FROM ERROR_DATA WHERE TECHNICALL_C0DE = ?';
+	SET result.values[] = PASSTHRU(sql,techCode);
+END;
+
+
+/*
+* Obtiene el valor de una homologacion de errores de la base de datos
+*
+* Parameters:
+* IN:  CHARACTER nameService - Código de servicio a consultar
+* OUT: REFERENCE result - Referencia donde devuelve los datos consultados
+*
+*/
+CREATE PROCEDURE getConfigService(IN serviceName CHARACTER, INOUT result REFERENCE) BEGIN
+	DECLARE sql CHARACTER 'SELECT * FROM SERVICES WHERE PK_ID_SERVICE = ?';
+	SET result.XMLNSC.configService.config[] = PASSTHRU(sql,serviceName);
+	
+	--Validar si hay datos para enmascarar
+	IF result.XMLNSC.configService.config.MASK_DATA = MASK_DATA_TRUE THEN
+		SET sql = 'SELECT * FROM MASK_DATA WHERE FK_ID_SERVICE = ?';	
+		SET result.XMLNSC.configService.maskData.paths[] = PASSTHRU(sql,serviceName);
+	END IF;	
+END;
+

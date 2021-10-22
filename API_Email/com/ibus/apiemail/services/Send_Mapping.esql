@@ -1,0 +1,33 @@
+BROKER SCHEMA com.ibus.apiemail.services
+
+
+CREATE COMPUTE MODULE Send_Mapping
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Pasar cabeceras de mensaje.
+		SET OutputRoot.MQMD 	= InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	= InputRoot.MQRFH2;
+		
+		--Declarar referencia
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		
+		--Guardar información de environment para envío de error, auditoría 
+		/******************************************************/
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+				
+		--Estableciendo tipo de contenido
+		SET OutputLocalEnvironment.Destination.Email.BodyContentType =  'text/html; charset=utf-8';
+		
+		--Creando mensaje con datos de envío de correo
+		SET OutputRoot.EmailOutputHeader.To 			= refInp.emailInfo.to;
+		SET OutputRoot.EmailOutputHeader.Cc 			= refInp.emailInfo.cc;
+		SET OutputRoot.EmailOutputHeader.From 			= 'santafe@santafe.com.co';
+		SET OutputRoot.EmailOutputHeader.Subject 		= refInp.emailInfo.subject;
+		
+		--Cuerpo del mensaje
+		SET OutputRoot.XMLNSC = NULL;
+		SET OutputRoot.BLOB.BLOB = CAST((refInp.emailInfo.body) AS BLOB CCSID 1208);
+		RETURN FALSE;
+	END;
+END MODULE;

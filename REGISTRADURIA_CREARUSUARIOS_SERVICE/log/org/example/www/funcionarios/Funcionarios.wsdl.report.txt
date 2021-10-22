@@ -1,0 +1,22 @@
+
+
+Importing file: C:\Users\Mauricio\Documents\Ingeniería de Software\Proyecto\Ciclo1\Fase Construccion\Creación WSDL\Funcionarios.wsdl
+
+The WSDL import will proceed with bindings FuncionariosSOAP.
+Creating wsdl schema document for file:///C:/Users/Mauricio/Documents/Ingeniería de Software/Proyecto/Ciclo1/Fase Construccion/Creación WSDL/Funcionarios.wsdl.
+Parsing wsdl binding {http://www.example.org/Funcionarios/}FuncionariosSOAP.
+Parsing wsdl binding input GetFuncionario.
+Parsing wsdl binding output GetFuncionario.
+Processing doc style for operation GetFuncionario.
+Populating WSDL schema Funcionarios.xsd.
+Creating file Funcionarios.xsd in the workspace.
+Creating file Funcionarios_InlineSchema1.xsd in the workspace.
+Copying source WSDL Funcionarios.wsdl to Funcionarios.wsdl.
+
+Elapsed time processing this message definition file: 0.491 seconds
+Number of warnings for this message definition file: 0
+
+
+Number of files processed: 1
+
+

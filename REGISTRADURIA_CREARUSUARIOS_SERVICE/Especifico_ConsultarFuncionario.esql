@@ -1,0 +1,237 @@
+DECLARE NM_COMPONENT_QUERY_PRq EXTERNAL CHARACTER NULL;
+DECLARE NM_COMPONENT_QUERY_PRs EXTERNAL CHARACTER NULL;
+DECLARE SERVICE_RQ_TRACE INTEGER '2'; 
+DECLARE SERVICE_RS_TRACE INTEGER '3';
+DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+DECLARE INTERFACE_DATA CONSTANT CHARACTER 'INTERFACE_DATA';
+DECLARE TIMEOUT_BACKEND CONSTANT CHARACTER 'TIMEOUT_BACKEND';
+--DECLARE ns NAMESPACE 'http://www.example.org/Funcionarios/';
+DECLARE ns NAMESPACE 'http://www.example.org/Registraduria/';
+DECLARE ns1 NAMESPACE 'http://www.example.org/MinDefensa/FuerzaPublica/';
+DECLARE soap2 NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+DECLARE UDPMQ EXTERNAL CHARACTER NULL;
+DECLARE expiry EXTERNAL CHARACTER NULL;
+
+CREATE COMPUTE MODULE ConsultaFuncionario_REQ
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Pasar cabeceras de mensaje.
+		SET OutputRoot.MQMD    = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2  = InputRoot.MQRFH2;		
+		-- Declarar referencias
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;		
+		--Copiar Identificador del Mensaje
+--		SET refEnv.SOAP.ReplyIdentifier = refMQRFH2.SOAP.ReplyIdentifier;       
+        --Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RQ_TRACE, NM_COMPONENT_QUERY_PRq);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);		
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;			
+		--Nombre de mensajes de respuesta
+		DECLARE nmElementRs CHARACTER COALESCE(refMQRFH2.usr.response.MQ.nmNode, 'ApplicationFault');		
+		----Guardar Mensaje que llega desde la fachada
+		SET OutputLocalEnvironment.Variables.XMLNSC.ns:RegistroUsuarioReq = InputRoot.XMLNSC.ns:RegistroUsuarioReq;
+		SET refEnv.Variables.headers.MQRFH2.XMLNSC.RegistroUsuarioReq = InputRoot.XMLNSC.ns:RegistroUsuarioReq;		
+		--Crear referencia del mensaje de Entrada
+		DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;		
+		--Crear referencia del mensaje hacia el Back-end
+		CREATE FIELD OutputRoot.XMLNSC.ns1:ConsultaFuncionarioReq.FuncionarioIn;
+		DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns1:ConsultaFuncionarioReq.FuncionarioIn;		
+		--Crear el mensaje para enviar al partner		
+		SET outputRef.RqUID                     = COALESCE(inputRef.RqUID, '');
+		SET outputRef.Fecha_Consulta            = COALESCE(inputRef.Fecha_Registro, '');
+		SET outputRef.Identificacion            = COALESCE(inputRef.Identificacion, '');
+		SET outputRef.Nombres                   = COALESCE(inputRef.UsuarioIn.Nombres, '');
+		SET outputRef.Apellidos                 = COALESCE(inputRef.Apellidos, '');
+		SET outputRef.Fuerza_Publica            = COALESCE(inputRef.Fuerza_Publica, '');
+		SET outputRef.Rango                     = COALESCE(inputRef.Rango, '');
+		SET outputRef.Email                     = COALESCE(inputRef.Email, '');
+	    RETURN TRUE;
+		
+		
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE ConsultaFuncionario_RESP
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN		
+		--Referencia los Arrays del objeto entorno
+		DECLARE refEnv REFERENCE TO Environment;		
+		-- Copiar Cabeceras		
+		SET OutputRoot.MQMD        = refEnv.Variables.headers.MQMD;
+		SET OutputRoot.MQRFH2      = refEnv.Variables.headers.MQRFH2; 		
+		--Declarar referencias
+	    DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	
+		DECLARE outputRFHRef REFERENCE TO OutputRoot.MQRFH2;		
+
+
+                     
+        --Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RS_TRACE, NM_COMPONENT_QUERY_PRs);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);			
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+			
+        DECLARE faultString CHARACTER InputRoot.SOAP.Body.soap:Fault.faultstring;	
+         IF (faultString IS NOT NULL) THEN			
+			    DECLARE serverStatusCode CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultcode);
+		        DECLARE serverStatusDesc CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultstring);					
+			    --Referencio el Mensaje de Respuesta del Back-end
+		        DECLARE inputRef REFERENCE TO InputLocalEnvironment.Variables.XMLNSC.ns:RegistroUsuarioReq;	
+			    CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+			    DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp; 				
+				--Referencio los campos de respuesta para el Update del Log de Auditoria
+				SET outputRef.ContextTransaction.CodeTransaction     = serverStatusCode;
+			    SET outputRef.ContextTransaction.DescTransaction 	 = COALESCE(serverStatusDesc, 'Error Interno IIB');															
+				---Mapeo La respuesta hacia el canal				
+				SET outputRef.UsuarioOut.RqUID                       =   COALESCE(inputRef.UsuarioIn.RqUID, '');	
+				SET outputRef.UsuarioOut.StatusCode                  =   300; 
+				SET outputRef.UsuarioOut.Severity                    =   'Error'; 			
+				SET outputRef.UsuarioOut.StatusDesc                  =   serverStatusDesc;									
+				--Consumo cola de la Fachada
+				RETURN TRUE;			
+         END IF;	
+                 
+         --Si el Usuario es Funcionario de la Fuerza Publica, se consume el especifico RegistraduriaRegistryUser           
+		 IF(InputRoot.XMLNSC.ns1:ConsultaFuncionarioResp.FuncionarioOut.StatusCode=0)THEN				   		    			    			
+				--Referencio el Mensaje de Respuesta del Back-end
+				DECLARE inputRef REFERENCE TO InputLocalEnvironment.Variables.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+				--Referencio mensaje de Salida hacia el especifico que invoca el registro.
+	            CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+				DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn; 					
+				--Crear el mensaje para enviar al partner				
+				SET outputRef = inputRef; 											
+				--Enviar al especifico
+				PROPAGATE TO TERMINAL 'out2' DELETE NONE;
+				--Consumo cola de especifico
+				RETURN FALSE;
+				
+		  --Si el usuario no es Funcionario de la Fuerza Publica, se construye la respuesta hacia la fachada.                 
+		   ELSE						  		   				    							
+				--Referencio los campos de respuesta del Back-end
+				DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns1:ConsultaFuncionarioResp.FuncionarioOut;				
+				--Referencio mensaje de Salida hacia la fachada.
+				CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+				DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp; 												
+				--Mapeo mensaje de respuesta para el Update de la Auditoria
+				SET outputRef.ContextTransaction.CodeTransaction 	= 'Info';
+			    SET outputRef.ContextTransaction.DescTransaction    = COALESCE(inputRef.StatusDesc, ' Transacción Exitosa');								
+				---Mapeo mensaje de respuesta hacia la fachada
+				CREATE FIELD outputRef.UsuarioOut;
+				DECLARE refOut REFERENCE TO outputRef.UsuarioOut; 							
+				SET refOut  =  inputRef;																
+				--Consumo cola de la Fachada de Respuesta
+				RETURN TRUE;
+	    END IF;	   		   		
+END;
+
+CREATE PROCEDURE CopyMessageHeaders() BEGIN
+	DECLARE I INTEGER 1;
+	DECLARE J INTEGER;
+	SET J = CARDINALITY(InputRoot.*[]);
+	WHILE I < J DO
+		SET OutputRoot.*[I] = InputRoot.*[I];
+		SET I = I + 1;
+	END WHILE;
+END;
+
+CREATE PROCEDURE CopyEntireMessage() BEGIN
+	SET OutputRoot = InputRoot;
+END;
+END MODULE;	
+
+
+
+CREATE COMPUTE MODULE ConsultaFuncionario_RESP_ERROR
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN	
+		
+		
+		--Referencia los Arrays del objeto entorno
+		DECLARE refEnv REFERENCE TO Environment;
+		-- Copiar Cabeceras		
+		SET OutputRoot.XMLNS        = InputRoot.XMLNS;					
+		SET OutputRoot.MQRFH2       = refEnv.Variables.headers.MQRFH2; 		
+	
+	    DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	
+		DECLARE outputRFHRef REFERENCE TO OutputRoot.MQRFH2;		
+		
+		--Copiar Identificador del Mensaje		
+		SET outputRFHRef.SOAP.ReplyIdentifier = refEnv.Variables.SOAP.ReplyIdentifier;                      
+       
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp.UsuarioOut;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp.UsuarioOut; 	
+		    
+		   -- refOut.StatusCode = refInp.ServerStatus.CodeTransaction;	
+		   -- refOut.StatusDesc = refInp.ServerStatus.DescTransaction;
+		   -- refOut.Severity   = 'Error';
+        
+         --Si el Usuario es Funcionario de la Fuerza Publica, se consume el especifico RegistraduriaRegistryUser           
+		 IF(InputRoot.XMLNSC.ns:ConsultaFuncionarioResp.FuncionarioOut.StatusCode=0)THEN				   		    			    			
+				--Referencio el Mensaje de Respuesta del Back-end
+				DECLARE inputRef REFERENCE TO InputLocalEnvironment.Variables.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+				--Referencio mensaje de Salida hacia el especifico que invoca el registro.
+	            CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+				DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn; 					
+				--Crear el mensaje para enviar al partner				
+				SET outputRef = inputRef; 											
+				--Enviar al especifico
+				PROPAGATE TO TERMINAL 'out2' DELETE NONE;
+				--Consumo cola de especifico
+				RETURN FALSE;
+				
+		  --Si el usuario no es Funcionario de la Fuerza Publica, se construye la respuesta hacia la fachada.                 
+		   ELSE						  		   				    							
+				--Referencio los campos de respuesta del Back-end
+				DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:ConsultaFuncionarioResp.FuncionarioOut;				
+				--Referencio mensaje de Salida hacia la fachada.
+				CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+				DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp; 												
+				--Mapeo mensaje de respuesta para el Update de la Auditoria
+				SET outputRef.ContextTransaction.CodeTransaction 	= 'Info';
+			    SET outputRef.ContextTransaction.DescTransaction    = COALESCE(inputRef.StatusDesc, ' Transacción Exitosa');								
+				---Mapeo mensaje de respuesta hacia la fachada
+				CREATE FIELD outputRef.UsuarioOut;
+				DECLARE refOut REFERENCE TO outputRef.UsuarioOut; 							
+				SET refOut  =  inputRef;																
+				--Consumo cola de la Fachada de Respuesta
+				RETURN TRUE;
+	    END IF;	   		   		
+END;
+
+CREATE PROCEDURE CopyMessageHeaders() BEGIN
+	DECLARE I INTEGER 1;
+	DECLARE J INTEGER;
+	SET J = CARDINALITY(InputRoot.*[]);
+	WHILE I < J DO
+		SET OutputRoot.*[I] = InputRoot.*[I];
+		SET I = I + 1;
+	END WHILE;
+END;
+
+CREATE PROCEDURE CopyEntireMessage() BEGIN
+	SET OutputRoot = InputRoot;
+END;
+END MODULE;	

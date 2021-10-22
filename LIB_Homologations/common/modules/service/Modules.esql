@@ -1,0 +1,123 @@
+BROKER SCHEMA common.modules.service
+
+CREATE COMPUTE MODULE ServiceGetInfoError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE codeError, nameError, descError CHARACTER '';
+		DECLARE refEnv REFERENCE TO Environment;
+		
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQMD.MsgId 		= CAST(refEnv.Variables.headers.MQMD.MsgId AS BLOB);
+		SET OutputRoot.MQMD.CorrelId 	= CAST(refEnv.Variables.headers.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.ReplyToQ 	= TRIM(refEnv.Variables.headers.MQMD.ReplyToQ);
+		SET OutputRoot.MQRFH2 			= refEnv.Variables.headers.MQRFH2;
+				
+		--Declarar referencia a lista de excepciones técnicas.
+		DECLARE refExceptionList REFERENCE TO InputExceptionList;
+		
+		CALL common.procedures.utils.getDescriptionExceptionList(refExceptionList, codeError, nameError, descError);
+	
+		CREATE FIELD OutputRoot.XMLNSC.excetiponReq;
+		DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.excetiponReq;
+	
+		--Creación del mensaje de error de fachada
+		SET refOut.exception.code		= codeError;
+		SET refOut.exception.desc		= nameError || ' : ' || descError;
+		
+		RETURN TRUE;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE ServiceCreateMsgError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Copiar cabeceras
+		SET OutputRoot.MQMD 	= InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	= InputRoot.MQRFH2;
+		
+		--Declare referencia Datos de respuesta
+		DECLARE refMQRFH2 REFERENCE TO InputRoot.MQRFH2;
+		
+	    --Declarar referencia al mensaje de error
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		MOVE refInp LASTCHILD;
+		
+		--Nombre de mensajes de respuesta
+		DECLARE nmElementRs CHARACTER '';
+		
+		--Nombre del objeto de respuesta
+		SET nmElementRs 	= COALESCE(refMQRFH2.usr.response.WS.nmNode, 'ApplicationFault');
+		
+		/******************************************************/
+		-- Declaración de namespaces propios de servicio
+		/******************************************************/
+		--Creación de mensaje de salida.
+		DECLARE refOut REFERENCE TO OutputRoot;
+		IF refMQRFH2.usr.response.formatType = 'XMLNSC' THEN
+			DECLARE v1 NAMESPACE refMQRFH2.usr.response.WS.namespace.*:v1;
+			CREATE FIELD OutputRoot.XMLNSC.v1:{nmElementRs};
+			MOVE refOut TO OutputRoot.XMLNSC.v1:{nmElementRs};
+		ELSE
+			CREATE FIELD OutputRoot.JSON.Data.{nmElementRs};
+			MOVE refOut TO OutputRoot.JSON.Data.{nmElementRs};			
+		END IF;
+		
+		DECLARE data ROW;
+		DECLARE refObjError REFERENCE TO data.objError;
+		CALL com.common.global.cache.getErrorHomologation(refInp.code, refObjError);
+		
+		--Creación del mensaje de error de fachada
+		SET refOut.ContextTransaction.IdTransaction 					= refMQRFH2.usr.contextTransaction.IdTransaction;
+		SET refOut.ContextTransaction.CodeTransaction 					= refObjError.code;
+		SET refOut.ContextTransaction.DescTransaction 					= refObjError.desc;
+		SET refOut.ContextTransaction.ServerStatus.CodeTransaction 		= COALESCE(refInp.ContextTransaction.CodeTransaction,refInp.code);
+		SET refOut.ContextTransaction.ServerStatus.DescTransaction 		= COALESCE(refInp.ContextTransaction.DescTransaction,refInp.desc);
+		
+		RETURN TRUE;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE ServiceGetProperties
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.MQMD.MsgId = CAST(InputLocalEnvironment.WrittenDestination.MQ.DestinationData.msgId AS BLOB);
+		SET OutputRoot.MQMD.CorrelId = CAST(InputLocalEnvironment.WrittenDestination.MQ.DestinationData.msgId AS BLOB);
+		
+		RETURN TRUE;
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE ServiceSaveDataToEnv
+	DECLARE SERVICE_RQ_TRACE CONSTANT INTEGER	'2';
+	DECLARE NM_COMPONENT EXTERNAL CHARACTER '';
+	DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+	DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		/******************************************************/
+		-- Copiar cabeceras de mensaje
+		/******************************************************/
+		SET OutputRoot.MQMD 	= InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	= InputRoot.MQRFH2;
+		
+		/******************************************************/
+		-- Declarar referencias
+		/******************************************************/
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;
+		
+		/******************************************************/
+		-- Setear información para auditoría y headers
+		/******************************************************/
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RQ_TRACE, NM_COMPONENT);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);
+		
+		SET OutputRoot.XMLNSC 	= InputRoot.XMLNSC; 
+		RETURN TRUE;
+	END;
+END MODULE;

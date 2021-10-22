@@ -1,0 +1,78 @@
+BROKER SCHEMA com.common.utils.procedures
+
+DECLARE EMPTY_STRING CONSTANT CHARACTER '';
+/*
+ * Procedimiento empleado para formatear un mensaje dado un juego de caracteres y un tipo de codificación.
+ *
+ * Parameters:
+ * IN: REFERENCE refInp - Mensaje original
+ * IN: INTEGER encoding - CódigoTipo de caracteres 
+ * IN: INTEGER ccsid - Código Tipo de caracteres
+ * IN: REFERENCE dataOut - Mensaje de salida 
+ *
+*/
+CREATE PROCEDURE parseMessage(in refInp REFERENCE, IN encoding INTEGER, IN ccsid INTEGER, IN dataOut REFERENCE)BEGIN
+	DECLARE messageTreeBlob BLOB ASBITSTREAM(refInp, encoding, ccsid,EMPTY_STRING,EMPTY_STRING,EMPTY_STRING,FolderBitStream);
+	SET dataOut.message = CAST(messageTreeBlob AS CHARACTER CCSID ccsid Encoding encoding);
+END;
+
+
+CREATE PROCEDURE maskMessage(IN refConfig REFERENCE, INOUT refInp REFERENCE)
+BEGIN
+	--Recorrer listado de paths a enmascarar
+	DECLARE valueMsg CHARACTER '';
+	
+	FOR refPath AS refConfig.configService.maskData.paths[] DO
+		IF refPath.ID_LOG = refConfig.log.idLog THEN
+			IF FIELDNAME(refInp) = 'JSON' THEN
+				MOVE refInp LASTCHILD;	
+			END IF;
+			IF refPath.TYPE_MESSAGE = 'XML' THEN
+				DECLARE pathMod CHARACTER TRIM(REPLACE(refPath.PATH_DATA,'/','.*:'));
+				SET valueMsg =  EVAL('COALESCE(refInp' || pathMod || ', '''')');
+				CALL replaceMaskMessageINXML(refInp,pathMod,refPath.MASK_TYPE,valueMsg);
+			ELSE
+				DECLARE msgInput CHARACTER CAST(refInp.BLOB AS CHARACTER CCSID 819);
+				SET valueMsg = SUBSTRING(msgInput FROM (CAST(SUBSTRING(refPath.PATH_DATA BEFORE '|') AS INTEGER)) FOR (CAST(SUBSTRING(refPath.PATH_DATA AFTER '|') AS INTEGER)));
+				SET valueMsg = com.common.utils.functions.getMaskByMethod(refPath.MASK_TYPE,valueMsg);
+				SET msgInput = OVERLAY (msgInput PLACING valueMsg FROM (CAST(SUBSTRING(refPath.PATH_DATA BEFORE '|') AS INTEGER)) FOR (CAST(SUBSTRING(refPath.PATH_DATA AFTER '|') AS INTEGER)));
+				SET refInp.BLOB = CAST(msgInput AS BLOB CCSID 819);
+			END IF;
+		END IF;
+	END FOR; 
+END;
+
+CREATE PROCEDURE replaceMaskMessageINXML(INOUT refInp reference, IN path CHARACTER, IN method CHARACTER, IN value CHARACTER)
+BEGIN
+	DECLARE i,j,posINIT, posEND, totalPos INTEGER 1;
+	DECLARE level INTEGER 0;
+	DECLARE nmField CHARACTER '';
+	
+	--Tamaño original
+	SET path = SUBSTRING(path FROM 2);
+	SET totalPos = LENGTH(path);
+	
+	WHILE i <= totalPos DO
+		SET posINIT = POSITION('*:' IN path);
+		SET path 	= SUBSTRING(path FROM posINIT+2);
+		SET posEND 	= POSITION('*:' IN path);
+		
+		IF posEND > 0 THEN
+			SET nmField = SUBSTRING(path FROM posINIT FOR ((posEND-1)-posINIT));
+			SET path 	= TRIM(SUBSTRING(path FROM posEND));
+			SET i = i + posEND;	
+		ELSE
+			SET nmField = TRIM(SUBSTRING(path FROM posINIT));
+			SET i = totalPos+1;
+		END IF;
+		MOVE refInp TO refInp.*:{nmField};
+		SET level = level +1;
+	END WHILE;
+	SET refInp = com.common.utils.functions.getMaskByMethod(method,value);
+	
+	--Devolver la referencia al inicio del mensaje de entrada
+	WHILE j <= level DO
+		MOVE refInp PARENT;
+		SET j = j+1;
+	END WHILE;
+END;

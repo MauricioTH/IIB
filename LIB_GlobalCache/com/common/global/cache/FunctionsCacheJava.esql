@@ -1,0 +1,43 @@
+BROKER SCHEMA com.common.global.cache
+
+
+/*
+ * Función que publica un valor en el cache global, invoca función java 'PUT'
+ *
+ * Parameters:
+ * IN: CHARACTER key      - Llave unica para registro en memoria cache
+ * IN: CHARACTER keyValue - Valor a regsitrar en memoria cache
+ * IN: CHARACTER mapName  - Nombre del mapa de memoeria cache
+ *
+ */
+CREATE FUNCTION putGlobalCache (IN key CHARACTER, IN keyValue CHARACTER, IN mapName CHARACTER)
+RETURNS CHARACTER
+LANGUAGE JAVA
+EXTERNAL NAME "co.com.global.cache.GlobalCache.put";
+
+
+/*
+ * Función que obtiene un valor del cache global, invoca función java 'GET'
+ *
+ * Parameters:
+ * IN: CHARACTER key      - Llave unica para consulta en memoria cache
+ * IN: CHARACTER mapName  - Nombre del mapa de memoeria cache
+ *
+ */
+CREATE FUNCTION getGlobalCache (IN key CHARACTER, IN mapName CHARACTER)
+RETURNS CHARACTER
+LANGUAGE JAVA
+EXTERNAL NAME "co.com.global.cache.GlobalCache.get";
+
+/*
+ * Función que remueve un valor del cache global, invoca función java 'REMOVE'
+ *
+ * Parameters:
+ * IN: CHARACTER key      - Llave unica para consulta en memoria cache
+ * IN: CHARACTER mapName  - Nombre del mapa de memoeria cache
+ *
+ */	
+CREATE FUNCTION removeGlobalCache (IN key CHARACTER, IN mapName CHARACTER)
+RETURNS CHARACTER
+LANGUAGE JAVA
+EXTERNAL NAME "co.com.global.cache.GlobalCache.remove";

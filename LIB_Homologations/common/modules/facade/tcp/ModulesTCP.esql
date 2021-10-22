@@ -1,0 +1,113 @@
+BROKER SCHEMA common.modules.facade.tcp
+
+--definicion de constantes
+DECLARE FACADE_RS_TRACE CONSTANT INTEGER 4;
+DECLARE NM_COMPONENT EXTERNAL CHARACTER NULL;
+
+CREATE COMPUTE MODULE ServiceGetInfoError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE codeError, nameError, descError CHARACTER '';
+		DECLARE refEnv REFERENCE TO Environment;
+		
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQMD.MsgId 		= CAST(InputRoot.MQMD.MsgId AS BLOB);
+		SET OutputRoot.MQMD.CorrelId 	= CAST(InputRoot.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.ReplyToQ 	= TRIM(InputRoot.MQMD.ReplyToQ);
+		SET OutputRoot.MQRFH2 	        = InputRoot.MQRFH2;
+		
+		--Declarar referencia a lista de excepciones técnicas.
+		DECLARE refExceptionList REFERENCE TO InputExceptionList;
+		
+		CALL common.procedures.utils.getDescriptionExceptionList(refExceptionList, codeError, nameError, descError);
+	
+		CREATE FIELD OutputRoot.XMLNSC.excetiponReq;
+		DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.excetiponReq;
+	
+		--Creación del mensaje de error de fachada
+		SET refOut.exception.code		= codeError;
+		SET refOut.exception.desc		= nameError || ' : ' || descError;
+		
+		RETURN TRUE;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE ServiceTCP_CreateMsgError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQMD.MsgId 		= CAST(InputRoot.MQMD.MsgId AS BLOB);
+		SET OutputRoot.MQMD.CorrelId 	= CAST(InputRoot.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.ReplyToQ 	= TRIM(InputRoot.MQMD.ReplyToQ);
+	    SET OutputRoot.MQMD 	        = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	        = InputRoot.MQRFH2;
+	
+		SET OutputRoot.MQRFH2.*:psc.*:Topic.*:ContextTransaction.*:CodeTransaction 				= 'E';
+		SET OutputRoot.MQRFH2.*:psc.*:Topic.*:ContextTransaction.*:DescTransaction 				= COALESCE('Error en la Transacción');	
+		
+			
+		--Declare referencia Datos de respuesta
+		DECLARE refMQRFH2 REFERENCE TO InputRoot.MQRFH2;
+		
+		--Tomar identificador para responder a cliente		
+		SET InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id 		=	refMQRFH2.usr.response.TCP.Id;
+		SET InputLocalEnvironment.TCPIP.Input.ConnectionDetails.ReplyId = 	refMQRFH2.usr.response.TCP.ReplyId ;
+	     
+	     -- crear mensaje de salida. 		
+	    CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');		   			
+		CREATE FIELD OutputRoot;
+		DECLARE outMsg REFERENCE TO OutputRoot;					
+		SET outMsg.DFDL   =InputRoot.MQRFH2.usr.response.DFDL; 
+		   
+		RETURN TRUE;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE FacadeTCP_GetReplyIdentifier
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQMD.MsgId 		= CAST(InputRoot.MQMD.MsgId AS BLOB);
+		SET OutputRoot.MQMD.CorrelId 	= CAST(InputRoot.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.ReplyToQ 	= TRIM(InputRoot.MQMD.ReplyToQ);
+	    SET OutputRoot.MQMD 	        = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	        = InputRoot.MQRFH2;
+				
+		/******************************************************/
+		-- Declarar referencias
+		/******************************************************/
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;
+		
+		
+		/******************************************************/
+		-- Setear información para auditoría y headers
+		/******************************************************/
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, FACADE_RS_TRACE, NM_COMPONENT);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);
+		
+		/******************************************************/
+		-- Envío para auditoría
+		/******************************************************/
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		
+		
+		--Tomar identificador para responder a cliente
+		SET InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id = refMQRFH2.usr.response.TCP.Id;
+		SET InputLocalEnvironment.TCPIP.Input.ConnectionDetails.ReplyId = refMQRFH2.usr.response.TCP.ReplyId;
+		
+		
+		/******************************************************/
+		-- Copiar todo el mensaje
+		/******************************************************/
+		SET OutputRoot 	= InputRoot;
+		
+		RETURN TRUE;
+	END;
+END MODULE;
+
+

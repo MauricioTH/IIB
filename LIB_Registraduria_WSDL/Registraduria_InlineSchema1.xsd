@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.example.org/Registraduria/" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions" xmlns:regis="http://www.example.org/Registraduria/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+      
+      <xsd:element ibmSchExtn:docRoot="true" name="ConsultaAntecedentesReq">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="AntecedentesIn" type="regis:AntecedentesType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+	  <xsd:element ibmSchExtn:docRoot="true" name="ConsultaAntecedentesResp">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="AntecedentesOut" type="regis:AntecedentesResponseType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element ibmSchExtn:docRoot="true" name="LoginUsuarioReq">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="LogIn" type="regis:LoginType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element ibmSchExtn:docRoot="true" name="LoginUsuarioResp">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="LoginOut" type="regis:LoginResponseType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>	  
+	  <xsd:element ibmSchExtn:docRoot="true" name="RegistroUsuarioReq">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="UsuarioIn" type="regis:RegistroType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element ibmSchExtn:docRoot="true" name="RegistroUsuarioResp">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="UsuarioOut" type="regis:RegistroResponseType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+	  <xsd:complexType name="AntecedentesType">
+       	 <xsd:sequence>   
+            <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" name="RqUID"/>
+            <xsd:element minOccurs="0" maxOccurs="1" type="xsd:dateTime" name="Fecha_Consulta"/> 			
+       	 	<xsd:element minOccurs="1" maxOccurs="1" type="xsd:int" 	name="Documetnum"/>
+       	 </xsd:sequence>
+       </xsd:complexType> 
+	  <xsd:complexType name="AntecedentesResponseType">
+      	<xsd:sequence>
+		    <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" 	name="RqUID"/>
+			<xsd:element minOccurs="0" maxOccurs="1" type="xsd:dateTime" name="Fecha_Consulta"/> 
+      		<xsd:element minOccurs="1" maxOccurs="1" type="xsd:int" 	name="StatusCode"/>
+      		<xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" 	name="estado"/>      		
+      		<xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" 	name="StatusDesc"/>			
+			<xsd:element minOccurs="1" maxOccurs="1" type="xsd:boolean" name="Antecedente"/>    		    		
+      	</xsd:sequence>
+      </xsd:complexType> 	  
+	  <xsd:complexType name="LoginType">
+        <xsd:sequence>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" name="RqUID"/>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:dateTime" name="Fecha_Login"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:int" name="NumDocumento"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Password"/>
+        </xsd:sequence>
+      </xsd:complexType>     
+      <xsd:complexType name="LoginResponseType">
+        <xsd:sequence>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" name="RqUID"/>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:dateTime" name="Fecha_Login"/>
+          <xsd:element minOccurs="0" maxOccurs="1" type="xsd:int" name="StatusCode"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Severity"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="StatusDesc"/>	 
+        </xsd:sequence>
+      </xsd:complexType> 
+	  <xsd:complexType name="RegistroType">
+        <xsd:sequence>
+          <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" name="RqUID"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:dateTime" name="Fecha_Registro"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:int" name="Identificacion"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Nombres"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Apellidos"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Fuerza_Publica"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Rango"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Email"/>
+        </xsd:sequence>
+      </xsd:complexType>
+	  <xsd:complexType name="RegistroResponseType">
+        <xsd:sequence>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:string" name="RqUID"/>
+		  <xsd:element minOccurs="0" maxOccurs="1" type="xsd:dateTime" name="Fecha_Registro"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:int" name="StatusCode"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="Severity"/>
+          <xsd:element minOccurs="1" maxOccurs="1" type="xsd:string" name="StatusDesc"/>         
+        </xsd:sequence>
+      </xsd:complexType>    	      
+    </xsd:schema>

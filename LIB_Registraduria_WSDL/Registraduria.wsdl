@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="Registraduria" targetNamespace="http://www.example.org/Registraduria/" xmlns:regis="http://www.example.org/Registraduria/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <wsdl:documentation>
+    <wsdl:appinfo source="WMQI_APPINFO">
+      <MRWSDLAppInfo imported="true">
+        <generatedXSD location="Registraduria_InlineSchema1.xsd"/>
+        <binding hasEncoding="false" imported="true" name="RegistraduriaSOAP" originalBindingStyle="document"/>
+      </MRWSDLAppInfo>
+    </wsdl:appinfo>
+  </wsdl:documentation>
+  <wsdl:types>
+    
+          <xsd:schema targetNamespace="http://www.example.org/Registraduria/" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions">
+<xsd:include schemaLocation="Registraduria_InlineSchema1.xsd"/>
+    </xsd:schema>
+    </wsdl:types>
+  <wsdl:message name="RegistroUsuarioRequest">
+    <wsdl:part element="regis:RegistroUsuarioReq" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="RegistroUsuarioResponse">
+    <wsdl:part element="regis:RegistroUsuarioResp" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="LoginUsuarioRequest">
+    <wsdl:part element="regis:LoginUsuarioReq" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="LoginUsuarioResponse">
+    <wsdl:part element="regis:LoginUsuarioResp" name="parameters"/>
+  </wsdl:message>
+ 
+  
+  <wsdl:message name="ConsultaAntecedentesRequest">
+    <wsdl:part element="regis:ConsultaAntecedentesReq" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="ConsultaAntecedentesResponse">
+    <wsdl:part element="regis:ConsultaAntecedentesResp" name="parameters"/>
+  </wsdl:message> 
+  
+  <wsdl:portType name="Registraduria">
+    <wsdl:operation name="RegistroUsuario">
+      <wsdl:input message="regis:RegistroUsuarioRequest"/>
+      <wsdl:output message="regis:RegistroUsuarioResponse"/>
+    </wsdl:operation>
+    <wsdl:operation name="LoginUsuario">
+      <wsdl:input message="regis:LoginUsuarioRequest"/>
+      <wsdl:output message="regis:LoginUsuarioResponse"/>
+    </wsdl:operation>
+	
+	<wsdl:operation name="ConsultaAntecedentes">
+      <wsdl:input message="regis:ConsultaAntecedentesRequest"/>
+      <wsdl:output message="regis:ConsultaAntecedentesResponse"/>
+    </wsdl:operation>	
+  </wsdl:portType>
+  <wsdl:binding name="RegistraduriaSOAP" type="regis:Registraduria">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="RegistroUsuario">
+      <soap:operation soapAction="http://www.example.org/registraduria/registroUsuario"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="LoginUsuario">
+      <soap:operation soapAction="http://www.example.org/registraduria/login"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>	
+	<wsdl:operation name="ConsultaAntecedentes">
+      <soap:operation soapAction="http://www.example.org/registraduria/consultaAntecedentes"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation> 
+  </wsdl:binding>
+  <wsdl:service name="Registraduria">
+    <wsdl:port binding="regis:RegistraduriaSOAP" name="RegistraduriaSOAP">
+      <soap:address location="http://localhost/registraduria/registraduria"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

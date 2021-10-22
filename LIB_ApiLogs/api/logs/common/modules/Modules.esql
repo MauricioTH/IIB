@@ -1,0 +1,40 @@
+BROKER SCHEMA api.logs.common.modules
+
+DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+
+--Constantes sobre tipo de log.
+DECLARE DATABASE_LOG CONSTANT CHARACTER 'DB';
+DECLARE FILE_LOG CONSTANT CHARACTER 'FILE';
+
+
+CREATE COMPUTE MODULE CmpValidationHeader
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Copiar cabeceras y mensaje
+		SET OutputRoot = InputRoot;
+		
+		--Cabecera de configuraciòn
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2.usr;
+		
+		--Validar informaciòn sobre configuraciòn de auditoria
+		DECLARE config ROW;
+		DECLARE refConfig REFERENCE TO config.data;
+		
+		--Declarar variables
+		DECLARE encod INTEGER COALESCE(InputRoot.Properties.Encoding, InputRoot.MQMD.Encoding, DEFAULT_ENCODING);
+		DECLARE ccsid INTEGER COALESCE(InputRoot.Properties.CodedCharSetId, InputRoot.MQMD.CodedCharSetId, DEFAULT_CCSID);
+		
+		--Vaidar si viene la cabecera de configuración (logs 2,3,4)
+		CALL com.common.global.cache.getConfigService(refMQRFH2.contextTransaction.idService, encod ,ccsid, refConfig);
+		SET refMQRFH2.configService = refConfig;	
+		
+		--Validar tipo de auditorìa
+		IF refMQRFH2.configService.config.TYPE_LOG = DATABASE_LOG THEN
+			RETURN TRUE;	
+		ELSE
+			PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		END IF;
+		RETURN FALSE;
+	END;
+END MODULE;

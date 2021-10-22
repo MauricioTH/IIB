@@ -1,0 +1,75 @@
+BROKER SCHEMA api.exception.common.modules
+DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+DECLARE MAX_EMAIL_HOUR CONSTANT CHARACTER 'MAX_EMAIL_HOUR';
+DECLARE NOTIFICATION_ERROR CONSTANT CHARACTER 'NOTIFICATION_ERROR';
+DECLARE SUBJECT_NOTIFICATION CONSTANT CHARACTER 'Notificación de error';
+
+
+--constantes mail;
+DECLARE BODY_TAG CONSTANT CHARACTER '$body';
+DECLARE SERVICE_TAG CONSTANT CHARACTER '$service';
+DECLARE OP_TAG CONSTANT CHARACTER '$operation';
+DECLARE TX_TAG CONSTANT CHARACTER '$tx';
+
+DECLARE DATE_TAG CONSTANT CHARACTER '$date';
+DECLARE CODE_TAG CONSTANT CHARACTER '$code';
+DECLARE DESC_TAG CONSTANT CHARACTER '$desc'; 
+
+CREATE COMPUTE MODULE RegisterException_Validation
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Copiar mensaje completo
+		SET OutputRoot.MQMD 	= InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	= InputRoot.MQRFH2;
+		
+        --Declarar referencias a cabeceras
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		
+		--Declare referencia a objeto de entrada
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		MOVE refInp LASTCHILD;		
+		
+		IF NOT EXISTS(refInp.*[]) THEN 	
+			SET refInp.desc = InputRoot.MQRFH2.usr.exception.desc;
+		END IF;
+		
+		--Consultar número de emails enviados por hora para ésta transacción
+		DECLARE encod INTEGER COALESCE(InputRoot.Properties.Encoding, InputRoot.MQMD.Encoding, DEFAULT_ENCODING);
+		DECLARE ccsid INTEGER COALESCE(InputRoot.Properties.CodedCharSetId, InputRoot.MQMD.CodedCharSetId, DEFAULT_CCSID);
+		
+		DECLARE num_send_email INTEGER api.exception.common.dao.countEmailSend(refMQRFH2.usr.contextTransaction.idService,refMQRFH2.usr.contextTransaction.IdTransaction);
+		DECLARE max_email_hour CHARACTER com.common.global.cache.functions.getParameterByConfig(refMQRFH2.usr.contextTransaction.idService,MAX_EMAIL_HOUR,encod,ccsid);
+		
+		--Registrar en base de datos el error
+		CALL api.exception.common.dao.insertLogError(refMQRFH2,refInp.desc);
+		DECLARE notificationEmail CHARACTER com.common.global.cache.functions.getParameterByConfig(refMQRFH2.usr.contextTransaction.idService,NOTIFICATION_ERROR,encod,ccsid);
+		IF num_send_email <= CAST(max_email_hour AS INTEGER) AND (LENGTH(notificationEmail) > 0) THEN
+			DECLARE mail CHARACTER '<h2>$body</h2><br><b>Servicio: </b>$service</br>'||
+			                       '<b>Transacción</b> : $tx</br><br><b>Fecha</b> :$date </br><br>'||
+			                       '<b>Código</b> : $code</br><br><b>Descripción</b> : $desc</br>';
+			
+			SET mail = REPLACE(mail, BODY_TAG, 'Prueba body');
+			SET mail = REPLACE(mail, SERVICE_TAG, refMQRFH2.usr.contextTransaction.idService);
+			SET mail = REPLACE(mail, OP_TAG,refMQRFH2.usr.log.component);
+			SET mail = REPLACE(mail, TX_TAG, refMQRFH2.usr.contextTransaction.IdTransaction);
+			SET mail = REPLACE(mail, DATE_TAG, refMQRFH2.usr.log.transactionDate);
+			SET mail = REPLACE(mail, CODE_TAG, refInp.code);
+			SET mail = REPLACE(mail, DESC_TAG, refInp.desc);
+			
+			CREATE FIELD OutputRoot.XMLNSC.emailReq;
+			DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.emailReq; 	
+			
+			CREATE FIELD refOut.emailInfo;
+			MOVE refOut TO refOut.emailInfo;
+			SET refOut.to					= notificationEmail;
+			SET refOut.subject				= SUBJECT_NOTIFICATION;
+			SET refOut.body 				= mail;
+			SET refOut.numEmailSend			= CAST(num_send_email  AS INTEGER);
+			RETURN FALSE;
+		ELSE
+			RETURN FALSE;
+		END IF;
+	END;
+END MODULE;

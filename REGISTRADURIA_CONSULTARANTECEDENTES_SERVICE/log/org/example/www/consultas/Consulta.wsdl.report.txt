@@ -1,0 +1,22 @@
+
+
+Importing file: C:\Users\MauricioTascon\Documents\Mauricio Tascon\Universidad\Ing Software\Proyecto\WSDLs\Consulta.wsdl
+
+The WSDL import will proceed with bindings consultaSOAP.
+Creating wsdl schema document for file:///C:/Users/MauricioTascon/Documents/Mauricio Tascon/Universidad/Ing Software/Proyecto/WSDLs/Consulta.wsdl.
+Parsing wsdl binding {http://www.example.org/Consultas/}consultaSOAP.
+Parsing wsdl binding input Consulta.
+Parsing wsdl binding output Consulta.
+Processing doc style for operation Consulta.
+Populating WSDL schema Consulta.xsd.
+Creating file Consulta.xsd in the workspace.
+Creating file Consulta_InlineSchema1.xsd in the workspace.
+Copying source WSDL Consulta.wsdl to Consulta.wsdl.
+
+Elapsed time processing this message definition file: 0.419 seconds
+Number of warnings for this message definition file: 0
+
+
+Number of files processed: 1
+
+

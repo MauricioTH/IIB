@@ -1,0 +1,69 @@
+BROKER SCHEMA com.common.global.cache
+
+DECLARE EMPTY_STRING CONSTANT CHARACTER '';
+DECLARE DEFAULT_CODE CONSTANT CHARACTER '700';
+DECLARE DEFAULT_DESCRIPTION CONSTANT CHARACTER '';
+
+DECLARE HOMOLOGATION_CATALOG_MAP CONSTANT CHARACTER 'Homologation';
+DECLARE ERROR_CATALOG_MAP CONSTANT CHARACTER 'Error';
+/*
+Función que devuelve un valor de homologacion.
+*/
+CREATE FUNCTION getHomologation(IN srcApp CHARACTER, IN destApp CHARACTER, IN category CHARACTER, IN homologationName CHARACTER)
+RETURNS CHARACTER
+BEGIN
+	DEClARE destValue CHARACTER EMPTY_STRING;
+	DECLARE homologation ROW;
+	DECLARE refHomologation REFERENCE TO homologation.data;
+	DEClARE keyName CHARACTER srcApp || destApp || category ||homologationName;
+	
+	SET destValue = getGlobalCache(keyName, HOMOLOGATION_CATALOG_MAP);
+	--SET destValue = NULL;
+	
+	IF (destValue IS NULL) THEN
+		--Consulta del valor de la homologacions
+		CALL com.common.global.cache.dao.getHomologation(srcApp, destApp, category, homologationName, refHomologation);
+		IF EXISTS(homologation.values[]) THEN
+			SET destValue = CAST (homologation.values.HOMOLOGATED_VALUE AS CHARACTER);
+		    DECLARE result CHARACTER putGlobalCache(keyName, destValue, HOMOLOGATION_CATALOG_MAP);
+		    IF(result <> EMPTY_STRING)THEN
+		    	SET destValue = EMPTY_STRING;
+			END IF;
+		ELSE
+			SET destValue = DEFAULT_DESCRIPTION;
+		END IF;	
+	END IF;
+	RETURN destValue;
+END;
+
+
+/*
+Procedimiento que devuelve los valores de error homologados
+*/
+CREATE PROCEDURE getErrorHomologation(IN techCode CHARACTER, INOUT resultValue REFERENCE)
+BEGIN
+	DEClARE destValue CHARACTER EMPTY_STRING;
+	DECLARE homologation ROW;
+	DECLARE refHomologation REFERENCE TO homologation.data;
+	DEClARE keyName CHARACTER techCode;
+	
+	--SET destValue = getGlobalCache(keyName, ERROR_CATALOG_MAP);
+	SET destValue = NULL;
+	
+	IF (destValue IS NULL) THEN
+		--Consulta del valor de la homologacions
+		CALL com.common.global.cache.dao.getHomologationError(techCode, refHomologation);
+		IF EXISTS(refHomologation.values[]) THEN
+			DECLARE result CHARACTER putGlobalCache(keyName, refHomologation.values.BUSINESS_CODE || '|' || refHomologation.values.DESCRIPTION_ERROR , ERROR_CATALOG_MAP);
+			
+			SET resultValue.code = CAST (refHomologation.values.BUSINESS_CODE AS CHARACTER);
+			SET resultValue.desc = CAST (refHomologation.values.DESCRIPTION_ERROR AS CHARACTER);
+		ELSE
+			SET resultValue.code 	= DEFAULT_CODE;
+			SET resultValue.desc 	= DEFAULT_DESCRIPTION;
+		END IF;
+	ELSE
+		SET resultValue.code 	= SUBSTRING(destValue BEFORE '|');
+		SET resultValue.desc 	= SUBSTRING(destValue AFTER '|');
+	END IF;	
+END;

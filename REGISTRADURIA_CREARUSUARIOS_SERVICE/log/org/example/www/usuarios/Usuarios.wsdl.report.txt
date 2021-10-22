@@ -1,0 +1,25 @@
+
+
+Importing file: C:\Users\MauricioTascon\Documents\Mauricio Tascon\Universidad\Ing Software\Proyecto\WSDLs\Usuarios.wsdl
+
+The WSDL import will proceed with bindings UsuariosSOAP.
+Creating wsdl schema document for file:///C:/Users/MauricioTascon/Documents/Mauricio Tascon/Universidad/Ing Software/Proyecto/WSDLs/Usuarios.wsdl.
+Parsing wsdl binding {http://www.example.org/Usuarios/}UsuariosSOAP.
+Parsing wsdl binding input Registro.
+Parsing wsdl binding output Registro.
+Parsing wsdl binding input Login.
+Parsing wsdl binding output Login.
+Processing doc style for operation Registro.
+Processing doc style for operation Login.
+Populating WSDL schema Usuarios.xsd.
+Creating file Usuarios.xsd in the workspace.
+Creating file Usuarios_InlineSchema1.xsd in the workspace.
+Copying source WSDL Usuarios.wsdl to Usuarios.wsdl.
+
+Elapsed time processing this message definition file: 0.416 seconds
+Number of warnings for this message definition file: 0
+
+
+Number of files processed: 1
+
+

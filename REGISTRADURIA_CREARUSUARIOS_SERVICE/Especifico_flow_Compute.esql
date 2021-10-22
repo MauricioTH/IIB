@@ -1,0 +1,129 @@
+DECLARE NM_COMPONENT_REGISTRY_PRq EXTERNAL CHARACTER NULL;
+DECLARE NM_COMPONENT_REGISTRY_PRs EXTERNAL CHARACTER NULL;
+DECLARE soap NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+
+
+CREATE COMPUTE MODULE Registro_REQ_flow
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Pasar cabeceras de mensaje.
+		SET OutputRoot.MQMD    = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2  = InputRoot.MQRFH2;		
+		
+		-- Declarar referencias
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;
+		DECLARE inputRFHRef REFERENCE TO InputRoot.MQRFH2;
+		
+		--Copiar Identificador del Mensaje
+		SET refEnv.SOAP.ReplyIdentifier = inputRFHRef.SOAP.ReplyIdentifier;
+		
+		
+		--Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RQ_TRACE, NM_COMPONENT_REGISTRY_PRq);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);
+        
+        --Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		
+		DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+		CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn;
+		DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioReq.UsuarioIn; 
+		--Crear el mensaje para enviar al partner
+		SET outputRef  = inputRef; 
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE Registro_RESP_flow
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Referencia los Arrays del objeto entorno
+		DECLARE refEnv REFERENCE TO Environment;
+		
+		-- Copiar Cabeceras		
+		SET OutputRoot.MQMD        = refEnv.Variables.headers.MQMD;
+		SET OutputRoot.MQRFH2      = refEnv.Variables.headers.MQRFH2; 
+		
+		-- Declarar referencias
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	
+		DECLARE outputRFHRef REFERENCE TO OutputRoot.MQRFH2;
+		 
+		
+		--Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RS_TRACE, NM_COMPONENT_REGISTRY_PRs);  
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);	 	
+	    
+	    --Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		
+		DECLARE faultString CHARACTER InputRoot.SOAP.Body.soap:Fault.faultstring; 
+		--Copiar mensaje completo para pasarlo al Log
+		IF (faultString IS NOT NULL) THEN
+			DECLARE serverStatusCode CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultcode);
+			DECLARE serverStatusDesc CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultstring);
+			--Referencio el Mensaje de Respuesta del Back-end
+			DECLARE inputRef REFERENCE TO InputLocalEnvironment.Variables.XMLNSC.ns:RegistroUsuarioReq;
+			CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+			DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC;
+			--Referencio los campos de respuesta para el Update del Log de Auditoria
+			SET outputRef.ContextTransaction.CodeTransaction  = serverStatusCode;
+			SET outputRef.ContextTransaction.DescTransaction  = COALESCE(serverStatusDesc, 'Error Interno IIB');
+			---Mapeo La respuesta hacia el canal
+			SET outputRef.UsuarioOut.RqUID                    = COALESCE(inputRef.UsuarioIn.RqUID, '');
+			SET outputRef.UsuarioOut.StatusCode               = 300;
+			SET outputRef.UsuarioOut.Severity                 = 'Error';
+			SET outputRef.UsuarioOut.StatusDesc               = serverStatusDesc;
+		ELSE
+			--Eliminar cabeceras innecesarias
+			SET OutputRoot.XMLNSC = NULL;
+			--Referencio los campos de respuesta del Back-end
+			DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:RegistroUsuarioResp.UsuarioOut;
+			CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+			DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+			--Referencio los campos de respuesta para el Update del Log de Auditoria
+			SET outputRef.ContextTransaction.CodeTransaction  = 'OK';
+			SET outputRef.ContextTransaction.DescTransaction  = ' Transacción Exitosa';
+			---Mapeo mensaje de respuesta hacia la fachada
+			CREATE FIELD outputRef.UsuarioOut;
+		    DECLARE refOut REFERENCE TO outputRef.UsuarioOut; 
+		    SET refOut  =  inputRef;
+		    SET refMQRFH2.Variables.XMLNSC.ns:RegistroUsuarioResp.UsuarioOut = inputRef;
+		END IF;
+		
+		--Consumo cola de la Fachada
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

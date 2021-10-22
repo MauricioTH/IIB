@@ -1,0 +1,166 @@
+BROKER SCHEMA common.modules.facade.mq
+
+
+--definicion de constantes
+DECLARE REQUEST_NMELEMENT CONSTANT CHARACTER	'Req';
+DECLARE RESPONSE_NMELEMENT CONSTANT CHARACTER	'Resp';
+DECLARE FACADE_RQ_TRACE CONSTANT INTEGER 1;
+DECLARE FACADE_RS_TRACE CONSTANT INTEGER 4;
+DECLARE PREFIX_QUEUE CONSTANT CHARACTER 'MQINP.';
+DECLARE SUFIX_QUEUE CONSTANT CHARACTER '.REQ';
+
+CREATE COMPUTE MODULE FacadeMQ_GetInfoError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE codeError, nameError, descError CHARACTER '';
+		
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQMD   = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		
+		SET OutputRoot.MQRFH2.usr 		= Environment.Variables.usr;
+		
+		--Copiar LocalEnvironment
+		SET OutputLocalEnvironment = InputLocalEnvironment;
+		
+		--Declarar referencia a lista de excepciones técnicas.
+		DECLARE refExceptionList REFERENCE TO InputExceptionList;
+		
+		CALL common.procedures.utils.getDescriptionExceptionList(refExceptionList, codeError, nameError, descError);
+	
+		CREATE FIELD OutputRoot.XMLNSC.excetiponReq;
+		DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.excetiponReq;
+		DECLARE long_descError INTEGER;
+		SET long_descError = LENGTH(descError); 
+	
+		--Creación del mensaje de error de fachada
+		SET refOut.exception.code		= codeError;
+		SET refOut.exception.desc		= nameError || ' : ' || descError;
+	
+		RETURN TRUE;
+	END;
+END MODULE;
+
+
+/*
+* Módulo de toma de datos para auditoría y direccionamiento de mensajes
+*/
+CREATE COMPUTE MODULE FacadaMQ_ReceiveMsg
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Crear cabeceras de mensaje
+		CREATE FIELD OutputRoot.Properties;
+		CREATE FIELD OutputRoot.MQMD;
+		CREATE FIELD OutputRoot.MQRFH2;
+		
+		--Copia de mensaje recibido desde cliente
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		
+		--Crear referencia a objeto de entrada.
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		
+		--Guardar nombre de elementos de respuesta en caso de falla.
+		SET OutputRoot.MQRFH2.usr.response.MQ.nmNode	= REPLACE(FIELDNAME(refInp), REQUEST_NMELEMENT, RESPONSE_NMELEMENT);
+		
+		--Guardar datos en cabecera para auditoría
+		SET OutputRoot.MQRFH2.usr.contextTransaction 							= refInp.ContextTransaction;
+		SET OutputRoot.MQRFH2.usr.contextTransaction.idService					= refInp.ContextTransaction.ApiName || '.' || refInp.ContextTransaction.Operation || '.' || refInp.ContextTransaction.Interface;
+		SET OutputRoot.MQRFH2.usr.log.component									= refInp.ContextTransaction.ApiName || '.Fcd';
+		SET OutputRoot.MQRFH2.usr.log.idLog 									= FACADE_RQ_TRACE;
+		SET OutputRoot.MQRFH2.usr.log.transactionDate 							= com.common.utils.functions.getDateRegisterOracle();
+		
+		--Setear el tipo de mensaje esperado en la respuesta
+		SET OutputRoot.MQRFH2.usr.response.formatType							= 'XMLNSC';
+		
+		--Tomar identificador de cliente.
+		SET OutputRoot.MQRFH2.usr.response.MQ.replyToQ							= InputRoot.MQMD.ReplyToQ;
+		SET OutputRoot.MQRFH2.usr.response.DB.identifier						= InputRoot.MQRFH2.usr.contextTransaction.identifier;
+		
+		--Salvar datos de respuesta
+		SET Environment.Variables.usr											= OutputRoot.MQRFH2.usr;
+		
+		--Poner nombre de cola destino.
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName 	=  PREFIX_QUEUE || UPPER(REPLACE(OutputRoot.MQRFH2.usr.contextTransaction.idService,'_','.')) || SUFIX_QUEUE;
+		
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		
+		--Propaga mensaje a componente específico
+		RETURN TRUE;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE FacadeMQ_GetReplyIdentifier
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		/******************************************************/
+		-- Copiar todo el mensaje
+		/******************************************************/
+		SET OutputRoot 	= InputRoot;
+		
+		/******************************************************/
+		-- Declarar referencias
+		/******************************************************/
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;
+		
+		/******************************************************/
+		-- Setear información para auditoría y headers
+		/******************************************************/
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, FACADE_RS_TRACE, refMQRFH2.usr.contextTransaction.ApiName || '.Fcd');
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);
+		
+		--Tomar identificador para responder a cliente
+		SET OutputRoot.MQMD.ReplyToQ 	= refMQRFH2.usr.response.MQ.replyToQ;
+		
+		/******************************************************/
+		-- Envío para auditoría
+		/******************************************************/
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		RETURN TRUE;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE ServiceMQ_CreateMsgError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Copiar cabeceras
+		SET OutputRoot.MQMD 	= InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 	= InputRoot.MQRFH2;
+		
+		--Declare referencia Datos de respuesta
+		DECLARE refMQRFH2 REFERENCE TO InputRoot.MQRFH2;
+		
+	    --Declarar referencia al mensaje de error
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		MOVE refInp LASTCHILD;
+		
+		--Nombre de mensajes de respuesta
+		DECLARE nmElementRs CHARACTER '';
+		
+		--Nombre del objeto de respuesta
+		SET nmElementRs 	= COALESCE(refMQRFH2.usr.response.MQ.nmNode, 'ApplicationFault');
+		
+		/******************************************************/
+		-- Declaración de namespaces propios de servicio
+		/******************************************************/
+		--Creación de mensaje de salida.
+		DECLARE refOut REFERENCE TO OutputRoot;
+		CREATE FIELD OutputRoot.XMLNSC.{nmElementRs};
+		MOVE refOut TO OutputRoot.XMLNSC.{nmElementRs};
+		
+		DECLARE refEnv REFERENCE TO Environment;
+		
+		--Creación del mensaje de error de fachada
+		SET refOut.ContextTransaction.IdTransaction 					= refMQRFH2.usr.contextTransaction.IdTransaction;
+		SET refOut.ContextTransaction.CodeTransaction 					= 'E';
+		SET refOut.ContextTransaction.DescTransaction 					= refInp.desc;
+		SET refOut.ContextTransaction.ServerStatus.CodeTransaction 		= COALESCE(refInp.ContextTransaction.CodeTransaction,refInp.code);
+		SET refOut.ContextTransaction.ServerStatus.DescTransaction 		= COALESCE(refInp.ContextTransaction.DescTransaction,refInp.desc);
+		
+		RETURN TRUE;
+	END;
+END MODULE;

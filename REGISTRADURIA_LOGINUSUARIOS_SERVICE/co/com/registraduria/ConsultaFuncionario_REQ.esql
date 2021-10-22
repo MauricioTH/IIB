@@ -1,0 +1,133 @@
+BROKER SCHEMA co.com.registraduria
+
+DECLARE NM_COMPONENT_QUERY_PRq EXTERNAL CHARACTER NULL;
+DECLARE NM_COMPONENT_QUERY_PRs EXTERNAL CHARACTER NULL;
+DECLARE SERVICE_RQ_TRACE CONSTANT INTEGER '2'; 
+DECLARE SERVICE_RS_TRACE CONSTANT INTEGER '3';
+DECLARE DEFAULT_ENCODING CONSTANT INTEGER 1252;
+DECLARE DEFAULT_CCSID CONSTANT INTEGER 1209;
+DECLARE INTERFACE_DATA CONSTANT CHARACTER 'INTERFACE_DATA';
+DECLARE TIMEOUT_BACKEND CONSTANT CHARACTER 'TIMEOUT_BACKEND';
+DECLARE ns NAMESPACE 'http://www.example.org/Registraduria/'; 
+DECLARE soap NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+DECLARE UDPMQ EXTERNAL CHARACTER NULL;
+DECLARE expiry EXTERNAL CHARACTER NULL;
+
+CREATE COMPUTE MODULE LoginUsuarios_REQ
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Pasar cabeceras de mensaje.
+		SET OutputRoot.MQMD    = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2  = InputRoot.MQRFH2;		
+		-- Declarar referencias
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;		
+		--Copiar Identificador del Mensaje
+		SET refEnv.SOAP.ReplyIdentifier = refMQRFH2.SOAP.ReplyIdentifier;       
+        --Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RQ_TRACE, NM_COMPONENT_QUERY_PRq);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);		
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;	
+		--Nombre de mensajes de respuesta
+		DECLARE nmElementRs CHARACTER COALESCE(refMQRFH2.usr.response.MQ.nmNode, 'ApplicationFault');		
+		----Guardar Mensaje que llega desde la fachada
+		SET InputLocalEnvironment.Variables.XMLNSC.ns:LoginUsuarioReq = InputRoot.XMLNSC.ns:LoginUsuarioReq; 		
+		SET refEnv.Variables.headers.MQRFH2.XMLNSC.LoginUsuarioReq    = InputRoot.XMLNSC.ns:LoginUsuarioReq;	
+		--Crear referencia del mensaje de Entrada
+		DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:LoginUsuarioReq.LogIn;
+		--Crear referencia del mensaje hacia el Back-end
+		CREATE FIELD OutputRoot.XMLNSC.ns:LoginUsuarioReq.LogIn;
+		DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:LoginUsuarioReq.LogIn;	
+		--Crear el mensaje para enviar al partner
+		SET outputRef  = inputRef;	
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE LoginUsuarios_RESP
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN		
+		--Referencia los Arrays del objeto entorno
+		DECLARE refEnv REFERENCE TO Environment;		
+		-- Copiar Cabeceras		
+		SET OutputRoot.MQMD        = refEnv.Variables.headers.MQMD;
+		SET OutputRoot.MQRFH2      = refEnv.Variables.headers.MQRFH2; 		
+		--Declarar referencias
+	    DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	
+		DECLARE outputRFHRef REFERENCE TO OutputRoot.MQRFH2;		
+		--Copiar Identificador del Mensaje		
+		SET outputRFHRef.SOAP.ReplyIdentifier = refEnv.Variables.SOAP.ReplyIdentifier;                      
+        --Enviar información para auditoría y headers
+		CALL common.procedures.utils.createMsgLogs(refMQRFH2, SERVICE_RS_TRACE, NM_COMPONENT_QUERY_PRs);
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);			
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+			
+        DECLARE faultString CHARACTER InputRoot.SOAP.Body.soap:Fault.faultstring; 	
+         IF (faultString IS NOT NULL) THEN 			
+			    DECLARE serverStatusCode CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultcode);
+		        DECLARE serverStatusDesc CHARACTER COALESCE(InputRoot.SOAP.*:Body.*:Fault.*:faultstring);					
+			    --Referencio el Mensaje de Respuesta del Back-end
+		        DECLARE inputRef REFERENCE TO InputLocalEnvironment.Variables.XMLNSC.ns:LoginUsuarioReq;	
+			    CREATE FIELD OutputRoot.XMLNSC.ns:ConsultaFuncionarioResp;  
+			    DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:LoginUsuarioResp; 				
+				--Referencio los campos de respuesta para el Update del Log de Auditoria
+				SET outputRef.ContextTransaction.CodeTransaction     = serverStatusCode;
+			    SET outputRef.ContextTransaction.DescTransaction 	 = COALESCE(serverStatusDesc, 'Error Interno IIB');															
+				---Mapeo La respuesta hacia el canal				
+				SET outputRef.LoginOut.RqUID                   =   COALESCE(inputRef.LoginOut.RqUID, '');	
+				SET outputRef.LoginOut.StatusCode              =   300; 
+				SET outputRef.LoginOut.Severity                =   'Error'; 			
+				SET outputRef.LoginOut.StatusDesc              =   serverStatusDesc;														
+            ELSE	                         	  		   				    							
+				--Referencio los campos de respuesta del Back-end
+				DECLARE inputRef REFERENCE TO InputRoot.XMLNSC.ns:LoginUsuarioResp.LoginOut;				
+				--Referencio mensaje de Salida hacia la fachada.
+				CREATE FIELD OutputRoot.XMLNSC.ns:LoginUsuarioResp;
+				DECLARE outputRef REFERENCE TO OutputRoot.XMLNSC.ns:LoginUsuarioResp; 												
+				--Mapeo mensaje de respuesta para el Update de la Auditoria
+				SET outputRef.ContextTransaction.CodeTransaction 	= 'OK';
+			    SET outputRef.ContextTransaction.DescTransaction    = 'Transacción Exitosa';								
+				---Mapeo mensaje de respuesta hacia la fachada
+				CREATE FIELD outputRef.LoginOut;
+				DECLARE refOut REFERENCE TO outputRef.LoginOut; 						
+				SET refOut  =  inputRef;	
+				SET refMQRFH2.Variables.XMLNSC.ns:LoginUsuarioResp.LoginOut = inputRef;				
+			END IF;																
+				--Consumo cola de la Fachada de Respuesta
+				RETURN TRUE;
+	      		   		
+END;
+
+CREATE PROCEDURE CopyMessageHeaders() BEGIN
+	DECLARE I INTEGER 1;
+	DECLARE J INTEGER;
+	SET J = CARDINALITY(InputRoot.*[]);
+	WHILE I < J DO
+		SET OutputRoot.*[I] = InputRoot.*[I];
+		SET I = I + 1;
+	END WHILE;
+END;
+
+CREATE PROCEDURE CopyEntireMessage() BEGIN
+	SET OutputRoot = InputRoot;
+END;
+END MODULE;	

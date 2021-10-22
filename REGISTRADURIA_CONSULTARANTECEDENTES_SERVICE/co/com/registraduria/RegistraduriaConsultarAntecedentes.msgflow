@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmMQReply.msgnode="ComIbmMQReply.msgnode" xmlns:ComIbmThrow.msgnode="ComIbmThrow.msgnode" xmlns:ComIbmTryCatch.msgnode="ComIbmTryCatch.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:gen_co_com_registraduria_ConsultaAntecedentes_Registraduria.subflow="gen/co/com/registraduria/ConsultaAntecedentes_Registraduria.subflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="co/com/registraduria/RegistraduriaConsultarAntecedentes.msgflow" nsPrefix="co_com_registraduria_RegistraduriaConsultarAntecedentes.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.NM_COMPONENT_QUERY_PRq" name="NM_COMPONENT_QUERY_PRq" defaultValueLiteral="PRq_Registraduria_ConsultarAntecedentes_Service">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.NM_COMPONENT_QUERY_PRs" name="NM_COMPONENT_QUERY_PRs" defaultValueLiteral="PRs_Registraduria_ConsultarAntecedentes_Service">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="RegistraduriaConsultarAntecedentes" bundleName="co/com/registraduria/RegistraduriaConsultarAntecedentes" pluginId="REGISTRADURIA_CONSULTARANTECEDENTES_SERVICE"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/REGISTRADURIA_CONSULTARANTECEDENTES_SERVICE/icons/full/obj16/RegistraduriaConsultarAntecedentes.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/REGISTRADURIA_CONSULTARANTECEDENTES_SERVICE/icons/full/obj30/RegistraduriaConsultarAntecedentes.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="373,94" computeExpression="esql://routine/co.com.registraduria#ConsultarAntecedentes_REQ.Main">
+        <translation xmi:type="utility:ConstantString" string="Consulta_Request"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTryCatch.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="238,90">
+        <translation xmi:type="utility:ConstantString" string="Try Catch"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="-102,90" queueName="MQINP.REGISTRADURIA.CONSULTAANTECEDENTES.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQINP.REGISTRADURIA.CONSULTAANTECEDENTES.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="705,103" computeExpression="esql://routine/co.com.registraduria#ConsultarAntecedentes_RESP.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="Consulta_Response"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="870,104">
+        <translation xmi:type="utility:ConstantString" string="MQ Reply"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="282,-23" computeExpression="esql://routine/common.modules.service#ServiceGetInfoError.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CmpGetError"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="489,-22" computeExpression="esql://routine/common.modules.facade.mq#ServiceMQ_CreateMsgError.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CmpErrorResp"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="675,-21">
+        <translation xmi:type="utility:ConstantString" string="MQ Reply1"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="354,-103" queueName="MQINP.EXCEPTION.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.MQ.EXCEPTION.REGISTER.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="383,187" queueName="MQINP.LOGS.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.MQ.LOGS.REGISTER.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_14" location="716,189" queueName="MQINP.LOGS.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.MQ.LOGS.REGISTER.REQ1"/>
+      </nodes>
+      <nodes xmi:type="gen_co_com_registraduria_ConsultaAntecedentes_Registraduria.subflow:FCMComposite_1" xmi:id="FCMComposite_1_17" location="491,95">
+        <translation xmi:type="utility:ConstantString" string="ConsultaAntecedentes_Registraduria"/>
+        <shortDescription xmi:type="utility:ConstantString" string="Invokes WSDL operation and extracts the response from SOAP message."/>
+        <longDescription xmi:type="utility:ConstantString" string="This subflow invokes the WSDL operation and extracts message body from the response message."/>
+      </nodes>
+      <nodes xmi:type="ComIbmThrow.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="611,188" messageCatalog="ATM" messageNumber="5" messageText="Error de conexion con el Banck-end de la Registraduria">
+        <translation xmi:type="utility:ConstantString" string="Throw"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.try" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in">
+        <bendPoints>26,-77,-119,-22</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.ConsultaAntecedentesResp" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_17" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_14" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.NM_COMPONENT_QUERY_PRq">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.NM_COMPONENT_QUERY_PRq" bundleName="co/com/registraduria/RegistraduriaConsultarAntecedentes" pluginId="REGISTRADURIA_CONSULTARANTECEDENTES_SERVICE"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.NM_COMPONENT_QUERY_PRs">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.NM_COMPONENT_QUERY_PRs" bundleName="co/com/registraduria/RegistraduriaConsultarAntecedentes" pluginId="REGISTRADURIA_CONSULTARANTECEDENTES_SERVICE"/>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

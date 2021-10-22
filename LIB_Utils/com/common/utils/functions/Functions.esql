@@ -1,0 +1,117 @@
+BROKER SCHEMA com.common.utils.functions
+/*
+Función que devuelve la fecha en formato yyyyMMddHHmmssSS
+*/
+CREATE FUNCTION getDateRegisterOracle()RETURNS CHARACTER
+BEGIN
+    RETURN CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSS');
+END;
+
+/*
+Función que devuelve una cadena de caracteres de un longitud dada, con ceros a la izquierda
+myLength : Tamaño de la cadena a devolver
+paddChar : Carácter de relleno
+data     : Dato original
+*/
+CREATE FUNCTION getDataOverlayCero(IN myLength INTEGER, IN paddChar CHARACTER, IN data CHARACTER)RETURNS CHARACTER
+BEGIN
+    RETURN OVERLAY(REPLICATE(paddChar,myLength) PLACING  data FROM (myLength - LENGTH(data)) FOR (LENGTH(data)+1));
+END;
+
+/*
+Función que devuelve un timestamp del sistema en el formato desdeado.
+*/
+CREATE FUNCTION getDateWhitFormat(IN myFormat CHARACTER)RETURNS CHARACTER
+BEGIN
+    RETURN CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT myFormat);
+END;
+
+
+/*
+Función que devuelve un fecha ingresada en el formato desdeado.
+*/
+CREATE FUNCTION getMyDateWhitFormat(IN myDate CHARACTER, IN myFormat CHARACTER)RETURNS CHARACTER
+BEGIN
+    DECLARE dateStr CHARACTER SUBSTRING(myDate BEFORE 'T');
+    DECLARE timeStr CHARACTER SUBSTRING(myDate AFTER 'T'); 
+    SET dateStr 		= REPLACE(dateStr, '/','-');
+    DECLARE Mytimestamp CHARACTER dateStr ||' '||timeStr;
+    DECLARE dateTime 	TIMESTAMP CAST(Mytimestamp AS TIMESTAMP);
+    -- SET dateStr 		= CAST((CAST(dateStr AS Date)) AS CHARACTER FORMAT myFormat);
+    -- SET timeStr 		= CAST((CAST(timeStr AS Time)) AS CHARACTER FORMAT hourFormat);
+    -- SET datetime 	= dateStr || timeStr;
+    -- RETURN CAST((CAST(dateTime AS Time)) AS CHARACTER FORMAT myFormat);
+    RETURN CAST(dateTime AS CHARACTER FORMAT myFormat);
+END;
+
+
+/*
+Función que devuelve un valor ofuscado, dado un nombre de método y un valor a ofuscar
+*/
+CREATE FUNCTION getMaskByMethod(IN method CHARACTER, IN valueMask CHARACTER)RETURNS CHARACTER
+BEGIN
+    DECLARE total INTEGER LENGTH(valueMask);
+    DECLARE strLeft, strRight CHARACTER '';
+    IF method = 'LastFour' THEN
+        --SET valueMask = LEFT(valueMask,6)||REPLICATE('*',total-4) ||RIGHT(valueMask,4);
+        SET valueMask = LEFT(valueMask,(total-4))||REPLICATE('*',4);
+    ELSEIF method = 'All' THEN
+        SET valueMask = REPLICATE('*',total);
+    ELSEIF method = 'Track2' THEN
+        SET strLeft = SUBSTRING(valueMask BEFORE '=');
+        SET strRight = SUBSTRING(valueMask AFTER '=');
+        SET total = LENGTH(strLeft);
+        SET valueMask = LEFT(valueMask,6)||REPLICATE('*',total-10) ||RIGHT(valueMask,4)||'='||LEFT(valueMask,4)||REPLICATE('*',LENGTH(strRight)-4);
+    END IF;
+    
+    RETURN valueMask; 
+  END;
+  
+  
+  CREATE FUNCTION pad(IN source CHARACTER, IN lenght INTEGER, IN paddingChar CHARACTER, IN side CHARACTER) RETURNS CHARACTER 
+BEGIN
+
+	DECLARE result			CHARACTER source;
+	DECLARE sourceLenght 	INTEGER LENGTH(source);
+
+	IF side = 'LEFT' THEN
+		IF sourceLenght < lenght THEN
+			SET result = REPLICATE(paddingChar,(lenght-sourceLenght)) || result;
+		ELSEIF sourceLenght > lenght THEN
+			SET result = RIGHT(result,lenght);
+		END IF;
+	ELSEIF side = 'RIGHT' THEN
+		IF sourceLenght < lenght THEN
+			SET result = result || REPLICATE(paddingChar,(lenght-sourceLenght));
+		ELSEIF sourceLenght > lenght THEN
+			SET result = LEFT(result,lenght);
+		END IF;
+	END IF;	 
+		
+	RETURN result;    
+END; 
+
+CREATE FUNCTION identifierCode(IN source CHARACTER) RETURNS CHARACTER
+BEGIN
+	CASE source
+		WHEN 'BR' THEN 
+			RETURN '2';
+		WHEN 'PI' THEN 
+			RETURN '3';
+		WHEN 'PN' THEN 
+			RETURN '4';
+		WHEN 'VS' THEN 
+			RETURN '5';
+		WHEN 'XX' THEN 
+			RETURN '6';
+	    WHEN 'AN' THEN 
+			RETURN 'M';
+	   WHEN 'DS' THEN 
+			RETURN 'P';
+	   WHEN 'DL' THEN 
+			RETURN 'A';
+	   WHEN 'UPIN' THEN 
+			RETURN 'N';											
+		
+	END CASE;
+END;

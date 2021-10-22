@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmSOAPInput.msgnode="ComIbmSOAPInput.msgnode" xmlns:ComIbmSOAPReply.msgnode="ComIbmSOAPReply.msgnode" xmlns:ComIbmTryCatch.msgnode="ComIbmTryCatch.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:gen_co_com_registraduria_Registraduria_Facade_Req.subflow="gen/co/com/registraduria/Registraduria_Facade_Req.subflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="co/com/registraduria/Facade_Req.msgflow" nsPrefix="co_com_registraduria_Facade_Req.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.expiry" name="expiry" defaultValueLiteral="100">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.NM_COMPONENT" name="NM_COMPONENT" defaultValueLiteral="FRq_Registraduria">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.UDP_ApiName" name="UDP_ApiName" defaultValueLiteral="REGISTRADURIA">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SUFIX_QUEUE" name="SUFIX_QUEUE" defaultValueLiteral=".REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.PREFIX_QUEUE" name="PREFIX_QUEUE" defaultValueLiteral="MQINP.">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.UDP_Interface" name="UDP_Interface">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="Facade_Req" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/REGISTRADURIA_FACADE/icons/full/obj16/Facade_Req.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/REGISTRADURIA_FACADE/icons/full/obj30/Facade_Req.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmTryCatch.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="256,58">
+        <translation xmi:type="utility:ConstantString" string="Try Catch"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="300,-40" computeExpression="esql://routine/common.modules.facade#Facade_GetInfoError_WS.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CmpGetError"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="588,66" computeExpression="esql://routine/co.com.registraduria#Facade_ReceiveMsg.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CmpReceiveMsg"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="512,-39" computeExpression="esql://routine/co.com.registraduria#Facade_CreateMsgError.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CmpErrorResp"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="595,170" queueName="MQINP.LOGS.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.MQ.LOGS.REGISTER.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="280,-141" queueName="MQINP.EXCEPTION.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.MQ.EXCEPTION.REGISTER.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="722,67" destinationMode="list" request="true" replyToQ="MQINP.REGISTRADURIA.RESP">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.GENERIC.SRV"/>
+      </nodes>
+      <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="713,-38">
+        <translation xmi:type="utility:ConstantString" string="SOAP Reply"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="524,-146" queueName="MQINP.LOGS.REGISTER.REQ">
+        <translation xmi:type="utility:ConstantString" string="MQOUT.LOGS.REGISTER.REQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmSOAPInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="82,62" wsdlFileName="Registraduria.wsdl" selectedPortType="Registraduria" selectedBinding="RegistraduriaSOAP" selectedPort="RegistraduriaSOAP" targetNamespace="http://www.example.org/Registraduria/" useHTTPTransport="true" urlSelector="/registraduria/registraduria" allowQueryWSDL="true" messageSetProperty="{LIB_Registraduria_WSDL}">
+        <translation xmi:type="utility:ConstantString" string="SOAP Input"/>
+      </nodes>
+      <nodes xmi:type="gen_co_com_registraduria_Registraduria_Facade_Req.subflow:FCMComposite_1" xmi:id="FCMComposite_1_12" location="400,62">
+        <translation xmi:type="utility:ConstantString" string="Registraduria"/>
+        <shortDescription xmi:type="utility:ConstantString" string="Extracts message body from the SOAP message"/>
+        <longDescription xmi:type="utility:ConstantString" string="This subflow extracts the body out of the SOAP message, has one output node per operation. This was generated by a WSDL file drag and drop operation."/>
+      </nodes>
+      <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="743,146">
+        <translation xmi:type="utility:ConstantString" string="SOAP Reply1"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_22" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.try" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.LoginUsuarioReq" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.RegistroUsuarioReq" targetTerminalName="InTerminal.in">
+        <bendPoints>94,-30,-104,-34</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.ConsultaAntecedentesReq" targetTerminalName="InTerminal.in">
+        <bendPoints>103,25,-95,21</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.expiry">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.expiry" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.NM_COMPONENT">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.NM_COMPONENT" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.UDP_ApiName">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.UDP_ApiName" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SUFIX_QUEUE">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.SUFIX_QUEUE" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.PREFIX_QUEUE">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.PREFIX_QUEUE" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.UDP_Interface">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.UDP_Interface" bundleName="co/com/registraduria/Facade_Req" pluginId="REGISTRADURIA_FACADE"/>
+                </propertyDescriptor>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

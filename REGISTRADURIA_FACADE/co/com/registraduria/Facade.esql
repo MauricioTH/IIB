@@ -1,0 +1,216 @@
+BROKER SCHEMA co.com.registraduria
+
+DECLARE FACADE_RQ_TRACE CONSTANT INTEGER 1;
+DECLARE FACADE_RS_TRACE CONSTANT INTEGER 4;
+DECLARE PREFIX_QUEUE EXTERNAL CHARACTER NULL;
+DECLARE SUFIX_QUEUE  EXTERNAL CHARACTER NULL;
+DECLARE UDP_ApiName EXTERNAL CHARACTER NULL;
+DECLARE UDP_Operation EXTERNAL CHARACTER NULL;
+DECLARE UDP_Interface EXTERNAL CHARACTER NULL;
+DECLARE NM_COMPONENT EXTERNAL CHARACTER NULL;
+DECLARE NM_COMPONENT_RESP EXTERNAL CHARACTER NULL;
+DECLARE ns NAMESPACE 'http://www.example.org/Registraduria/'; 
+
+
+CREATE COMPUTE MODULE Facade_ReceiveMsg	
+    CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Crear cabeceras de mensaje
+		CREATE FIELD OutputRoot.Properties;
+		CREATE FIELD OutputRoot.MQMD;
+		CREATE FIELD OutputRoot.MQRFH2;
+		
+		--Tomar identificador de cliente.
+		SET OutputRoot.MQRFH2.usr.response.WS.replyIdentifier                  = InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
+		
+		--Crear referencia a objeto de entrada.
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		MOVE refInp LASTCHILD;
+			
+		--Obtenemos el Nombre de la Operacion Invocada.
+		DECLARE Operation  CHARACTER InputLocalEnvironment.SOAP.Envelope.InRequest.RegistraduriaSOAP.SOAP.Context.operation;
+		SET OutputRoot.MQRFH2.usr.operation = Operation;
+		
+		--Declarar referencia a MQRFH2.usr
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+				
+		--Guardar datos en cabecera para auditoría
+		SET refMQRFH2.usr.contextTransaction.IdTransaction  	        =  CAST(CURRENT_GMTTIMESTAMP AS CHARACTER FORMAT 'YYYYmmddHHmmss')|| '_' || CAST(refInp.RqUID AS CHARACTER);                                       	
+		SET refMQRFH2.usr.contextTransaction.idService					= UDP_ApiName || '.' || Operation;
+		SET refMQRFH2.usr.contextTransaction.StateTransaction           = 'PT';
+		SET refMQRFH2.usr.contextTransaction.DescState 	                = COALESCE('Transacción en proceso');	
+		SET refMQRFH2.usr.log.component									= NM_COMPONENT;
+		SET refMQRFH2.usr.log.idLog 									= FACADE_RQ_TRACE;
+		SET refMQRFH2.usr.log.transactionDate 							= com.common.utils.functions.getDateRegisterOracle();
+		
+		--Setear el tipo de mensaje esperado en la respuesta
+		SET refMQRFH2.usr.response.formatType							= 'XMLNSC';
+		
+		--Salvar datos de respuesta
+		SET Environment.Variables.usr								      = refMQRFH2.usr;
+		
+		--Poner nombre de cola destino.
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName 	=  PREFIX_QUEUE || UPPER(REPLACE(OutputRoot.MQRFH2.usr.contextTransaction.idService,'_','.')) || SUFIX_QUEUE;
+		
+		--Copia de mensaje recibido desde cliente
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		
+		--Propaga mensaje de auditoría
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+			
+		--Propaga mensaje a componente específico
+		RETURN TRUE;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE Facade_CmpResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	 BEGIN
+		 --Copiar cabeceras
+		 SET OutputRoot 	= InputRoot;                           
+        --Declarar referencias        		 
+		DECLARE refEnv REFERENCE TO Environment;		
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	 		 		 
+		SET OutputRoot.MQMD.ReplyToQ 	= TRIM(InputRoot.MQMD.ReplyToQ);
+        --Setear información para auditoría y headers                         
+        CALL common.procedures.utils.createMsgLogs(refMQRFH2, FACADE_RS_TRACE, NM_COMPONENT_RESP);		
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);				   
+		--Enviar mensaje a Auditoria
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE; 
+		 
+		  --Creación de mensaje de salida.	 
+	  IF EXISTS (InputRoot.XMLNSC.ApplicationFault[])THEN	
+	  	
+          --Declarar referencia al mensaje de entrada
+		 DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		 MOVE refInp LASTCHILD;  
+		 MOVE refInp LASTCHILD;	  	
+	  		  		  	
+	  	 DECLARE refeMQRFH2 REFERENCE TO refMQRFH2;
+		 MOVE refeMQRFH2 LASTCHILD;
+	  	 MOVE refeMQRFH2 LASTCHILD;   	  
+		 
+		 IF (refMQRFH2.usr.operation) = 'ConsultaAntecedentes'  THEN 	 		    	  	 	 	 		    
+		    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:ConsultaAntecedentesResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:ConsultaAntecedentesResp; 
+		    SET refOut.AntecedentesOut.RqUID            =  refeMQRFH2.AntecedentesIn.RqUID;
+		    SET refOut.AntecedentesOut.Fecha_Consulta   =  refeMQRFH2.AntecedentesIn.Fecha_Consulta;		   
+		   	SET refOut.AntecedentesOut.StatusCode       =  refInp.ServerStatus.CodeTransaction; 
+		   	SET refOut.AntecedentesOut.estado           = 'Error';
+		   	SET refOut.AntecedentesOut.StatusDesc       =  refInp.ServerStatus.DescTransaction; 
+		   	SET refOut.AntecedentesOut.Antecedente      =  false;  		   	 		     	         		                       		 
+		 ELSEIF (refMQRFH2.usr.operation) =  'ConsultaFuncionario' THEN 
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:ConsultaFuncionarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:ConsultaFuncionarioResp; 
+		    SET refOut.FuncionarioOut.RqUID           =  refeMQRFH2.FuncionarioIn.RqUID;
+		    SET refOut.FuncionarioOut.Fecha_Consulta  =  refeMQRFH2.FuncionarioIn.Fecha_Consulta;		   
+		    SET refOut.FuncionarioOut.StatusCode      =  refInp.ServerStatus.CodeTransaction;
+		    SET refOut.FuncionarioOut.Severity        =  'Error';
+		    SET refOut.FuncionarioOut.StatusDesc      =  refInp.ServerStatus.DescTransaction;		    		    		
+		ELSEIF (refMQRFH2.usr.operation)='LoginUsuario' THEN 
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:LoginUsuarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:LoginUsuarioResp;	
+		    SET refOut.LoginOut.RqUID              = refeMQRFH2.LoginIn.RqUID; 
+		    SET refOut.LoginOut.Fecha_Login        = refeMQRFH2.LoginIn.Fecha_Login;   
+		    SET refOut.LoginOut.StatusCode         = refInp.ServerStatus.CodeTransaction;	
+		    SET refOut.LoginOut.StatusDesc         = refInp.ServerStatus.DescTransaction;
+		    SET refOut.LoginOut.Severity           = 'Error';		
+		ELSEIF (refMQRFH2.usr.operation)='RegistroUsuario' THEN 	   
+		    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+		    SET refOut.UsuarioOut.RqUID          =  refeMQRFH2.UsuarioIn.RqUID;
+		    SET refOut.UsuarioOut.Fecha_Registro =  refeMQRFH2.UsuarioIn.Fecha_Registro;		   
+		    SET refOut.UsuarioOut.StatusCode     =  refInp.ServerStatus.CodeTransaction;
+		    SET refOut.UsuarioOut.Severity       =  'Error';
+		    SET refOut.UsuarioOut.StatusDesc     =  refInp.ServerStatus.DescTransaction;		    	    		     		   	 	                                            		 		 
+		 ELSE
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC;                                
+        END IF;     
+	 ELSE
+	  	SET OutputRoot.*:XMLNSC.*:*.*:ContextTransaction = null; 
+	  	CREATE FIELD OutputRoot.XMLNSC;
+		DECLARE refOut REFERENCE TO OutputRoot.XMLNSC;       
+     END IF; 
+         
+         --Tomar identificador para responder a cliente
+            SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(refMQRFH2.usr.response.WS.replyIdentifier AS BLOB);	
+         RETURN TRUE;
+     END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE Facade_CreateMsgError
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--Poner información de configuración en cabecera de mensaje.
+		SET OutputRoot.MQRFH2 	        = InputRoot.MQRFH2;
+		DECLARE refEnv REFERENCE TO Environment;
+		DECLARE refMQRFH2 REFERENCE TO OutputRoot.MQRFH2;
+		DECLARE refInpRoot REFERENCE TO OutputRoot;	 
+				
+		
+	    --Declarar referencia al mensaje de error
+		DECLARE refInp REFERENCE TO InputRoot.XMLNSC;
+		MOVE refInp LASTCHILD;
+		MOVE refInp LASTCHILD;
+	       		
+		SET refMQRFH2.usr 		= Environment.Variables.usr; 
+		 		 
+		 --Enviar mensaje a Auditoria
+		  PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		 	
+		 --Setear información para auditoría y headers                         
+        CALL common.procedures.utils.createMsgLogs(refMQRFH2, FACADE_RQ_TRACE, NM_COMPONENT);	 	
+		CALL common.procedures.utils.saveMQM(refInpRoot, refEnv);  
+		   
+		
+		DECLARE Operation CHARACTER InputLocalEnvironment.Destination.RouterList.DestinationData.labelName;
+						
+		
+		--Guardar variables para manejo de errores	
+		SET Environment.Variables.usr	 = refMQRFH2.usr;				  
+		  --Creación de mensaje de salida.
+		 IF (Operation)='ConsultaAntecedentes'  THEN 	 		    	  	 	 	 
+		    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:ConsultaAntecedentesResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:ConsultaAntecedentesResp; 		   
+		    SET refOut.AntecedentesOut.StatusCode      = refInp.code;	
+		    SET refOut.AntecedentesOut.StatusDesc      = refInp.desc;
+		    SET refOut.AntecedentesOut.estado          = 'Error';	    		     	         		                       
+		 ELSEIF (Operation)='ConsultaFuncionario' THEN 
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:ConsultaFuncionarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:ConsultaFuncionarioResp; 		   
+		    SET refOut.FuncionarioOut.StatusCode  = refInp.code;
+		    SET refOut.FuncionarioOut.StatusDesc  = refInp.desc;
+		    SET refOut.FuncionarioOut.Severity= 'Error';
+		ELSEIF (Operation)='LoginUsuario' THEN 
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:LoginUsuarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:LoginUsuarioResp;	   
+		    SET refOut.LoginOut.StatusCode = refInp.code;
+		    SET refOut.LoginOut.StatusDesc = refInp.desc;
+		    SET refOut.LoginOut.Severity= 'Error';	
+		ELSEIF (Operation)='RegistroUsuario' THEN 
+	 	    SET OutputRoot.*:XMLNSC = null;    		 
+		    CREATE FIELD OutputRoot.XMLNSC.ns:RegistroUsuarioResp;
+		    DECLARE refOut REFERENCE TO OutputRoot.XMLNSC.ns:RegistroUsuarioResp; 		   
+		    SET refOut.UsuarioOut.StatusCode = refInp.code;
+		    SET refOut.UsuarioOut.StatusDesc = refInp.desc;
+		    SET refOut.UsuarioOut.Severity= 'Error';	    		     			                                  
+       END IF;	
+       
+       --Tomar identificador para responder a cliente
+         SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier; 
+		
+		RETURN TRUE;
+	END;
+END MODULE;

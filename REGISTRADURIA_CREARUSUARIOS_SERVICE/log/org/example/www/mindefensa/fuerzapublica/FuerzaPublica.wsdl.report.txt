@@ -1,0 +1,22 @@
+
+
+Importing file: F:\Universidad\Ingenieria Software\Registraduria\Construccion\Creacion WSDL\FuerzaPublica.wsdl
+
+The WSDL import will proceed with bindings FuerzaPublicaSOAP.
+Creating wsdl schema document for file:///F:/Universidad/Ingenieria Software/Registraduria/Construccion/Creacion WSDL/FuerzaPublica.wsdl.
+Parsing wsdl binding {http://www.example.org/MinDefensa/FuerzaPublica/}FuerzaPublicaSOAP.
+Parsing wsdl binding input ConsultaFuncionarios.
+Parsing wsdl binding output ConsultaFuncionarios.
+Processing doc style for operation ConsultaFuncionarios.
+Populating WSDL schema FuerzaPublica.xsd.
+Creating file FuerzaPublica.xsd in the workspace.
+Creating file FuerzaPublica_InlineSchema1.xsd in the workspace.
+Copying source WSDL FuerzaPublica.wsdl to FuerzaPublica.wsdl.
+
+Elapsed time processing this message definition file: 0.83 seconds
+Number of warnings for this message definition file: 0
+
+
+Number of files processed: 1
+
+

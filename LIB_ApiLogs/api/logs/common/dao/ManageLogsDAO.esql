@@ -1,0 +1,38 @@
+BROKER SCHEMA api.logs.common.dao
+
+DECLARE PENDING_TRANSACTION CONSTANT CHARACTER 'PT';
+DECLARE DESC_PENDING CONSTANT CHARACTER 'Transacción en proceso';
+
+
+/*
+Inserta registro en tabla maestro
+*/
+--CREATE PROCEDURE insertLogTransaction(IN refConfig REFERENCE) BEGIN
+	--DECLARE dateRegister TIMESTAMP CAST(refConfig.log.transactionDate AS TIMESTAMP FORMAT 'yyyyMMddHHmmssSS');
+	--DECLARE sql CHARACTER 'INSERT INTO LOG_TRANSACTION(FK_ID_SERVICE,ID_TRANSACTION,INIT_DATE,END_DATE,STATE_TRANSACTION,DESC_TRANSACTION) VALUES (?,?,?,?,?,?)';
+	--PASSTHRU(sql,refConfig.contextTransaction.idService,refConfig.contextTransaction.IdTransaction,dateRegister,dateRegister,PENDING_TRANSACTION,DESC_PENDING);
+--END;
+
+CREATE PROCEDURE insertLogTransaction(IN refConfig REFERENCE) BEGIN
+	DECLARE dateRegister TIMESTAMP CAST(refConfig.log.transactionDate AS TIMESTAMP FORMAT 'yyyyMMddHHmmssSS');
+	DECLARE sql CHARACTER 'INSERT INTO LOG_TRANSACTION(FK_ID_SERVICE,ID_TRANSACTION,INIT_DATE,END_DATE,STATE_TRANSACTION,DESC_TRANSACTION) VALUES (?,?,?,?,?,?)';
+	PASSTHRU(sql,refConfig.contextTransaction.idService,refConfig.contextTransaction.IdTransaction,dateRegister,dateRegister,refConfig.contextTransaction.StateTransaction,refConfig.contextTransaction.DescState);
+END;
+
+CREATE PROCEDURE updateLogTransaction(INOUT refConfig REFERENCE) BEGIN
+	DECLARE dateRegister TIMESTAMP CAST(refConfig.log.transactionDate AS TIMESTAMP FORMAT 'yyyyMMddHHmmssSS');
+	DECLARE sql CHARACTER 'UPDATE LOG_TRANSACTION SET END_DATE = ?, STATE_TRANSACTION = ?, DESC_TRANSACTION = ? WHERE FK_ID_SERVICE = ? AND ID_TRANSACTION = ? ';
+	PASSTHRU(sql,dateRegister,refConfig.log.stateTransaction,COALESCE(SUBSTRING(refConfig.log.descTransaction FROM 1 FOR 200), 'No definido'),refConfig.contextTransaction.idService,refConfig.contextTransaction.IdTransaction);
+END;
+
+CREATE PROCEDURE insertLogTransactionDetail(INOUT refConfig REFERENCE) BEGIN
+	DECLARE dateRegister TIMESTAMP CAST(refConfig.log.transactionDate AS TIMESTAMP FORMAT 'yyyyMMddHHmmssSS');
+	DECLARE message BLOB CAST(refConfig.message AS BLOB CCSID 819);
+	
+	DECLARE nextVal ROW;
+	SET nextVal.ID[] = PASSTHRU('SELECT LOG_TRANSACTION_DETAIL_SEQ.NEXTVAL FROM DUAL');
+	DECLARE logId INTEGER CAST(nextVal.ID.NEXTVAL AS FLOAT);
+	
+	DECLARE sql CHARACTER 'INSERT INTO LOG_TRANSACTION_DETAIL(PK_ID_LOG_TRANSACTION_DETAIL, FK_ID_SERVICE,FK_ID_TRANSACTION,DATE_MESSAGE,TYPE_LOG,MESSAGE,COMPONENT) VALUES (?,?,?,?,?,?,?)';
+	PASSTHRU(sql,logId,refConfig.contextTransaction.idService, refConfig.contextTransaction.IdTransaction,dateRegister,refConfig.log.idLog,message,refConfig.log.component);
+END;

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/GlobalCacheIBUS"/>
+	<classpathentry kind="con" path="com.ibm.etools.mft.uri.classpath.MBProjectReference"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/bipbroker.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/bipobserver.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/brokerutil.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/cmnCon.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/connectors.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/deploymgr.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/javacompute.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/jdbcnodes.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/jmsclient.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/jplugin2.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/jplugininternal.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/jruncompute.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/classes/vfdmftcore.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/IBM/IIB/10.0.0.10/server/connectors/kafka/connectorkafka.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

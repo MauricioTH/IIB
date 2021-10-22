@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.example.org/MinDefensa/FuerzaPublica/" xmlns:fp="http://www.example.org/MinDefensa/FuerzaPublica/" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+      
+	  <xsd:element ibmSchExtn:docRoot="true" name="ConsultaFuncionarioReq">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="FuncionarioIn" type="fp:FuncionarioInType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:complexType name="FuncionarioInType">
+      	<xsd:sequence>
+      		<xsd:element maxOccurs="1" minOccurs="0" name="RqUID" type="xsd:string"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Fecha_Consulta" type="xsd:dateTime"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Identificacion" type="xsd:int"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Nombres" type="xsd:string"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Apellidos" type="xsd:string"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Fuerza_Publica" type="xsd:string"/>
+      		<xsd:element maxOccurs="1" minOccurs="1" name="Rango" type="xsd:string"/>
+      		<xsd:element maxOccurs="1" minOccurs="0" name="Email" type="xsd:string"/>
+      	</xsd:sequence>
+      </xsd:complexType>
+	  
+      <xsd:element ibmSchExtn:docRoot="true" name="ConsultaFuncionarioResp">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="FuncionarioOut" type="fp:FuncionarioOutType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:complexType name="FuncionarioOutType">
+      	 <xsd:sequence>
+		  <xsd:element maxOccurs="1" minOccurs="0" name="RqUID" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="Fecha_Consulta" type="xsd:dateTime"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="StatusCode" type="xsd:int"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="Severity" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="StatusDesc" type="xsd:string"/>  		      		
+      	 </xsd:sequence>
+      </xsd:complexType> 
+    </xsd:schema>
